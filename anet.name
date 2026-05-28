@@ -1,0 +1,4 @@
+[VPN Connection]
+name=anet
+service=org.freedesktop.NetworkManager.anet
+program=/usr/local/libexec/anet-dbus.py
