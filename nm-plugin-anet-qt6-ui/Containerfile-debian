@@ -1,0 +1,51 @@
+# Используем Debian Trixie, так как нужны Qt >= 6.8 и KF6 >= 6.8
+FROM debian:trixie
+
+# Отключаем интерактивные запросы при установке пакетов
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+# 2. Зависимости Qt6, системные библиотеки и утилиты (из первой части логов)
+RUN apt-get update && apt-get install -y \
+    qt6-base-dev \
+    qt6-base-dev-tools \
+    qt6-declarative-dev \
+    qt6-declarative-dev-tools \
+    extra-cmake-modules \
+    pkgconf \
+    gettext \
+    libssl-dev \
+    libxkbcommon-dev \
+    libvulkan-dev \
+    qtkeychain-qt6-dev \
+    libqca-qt6-dev \
+    qcoro-qt6-dev \
+    libplasma-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3. Библиотеки KDE Frameworks 6 (KF6) (из второй части логов)
+RUN apt-get update && apt-get install -y \
+    libkf6dbusaddons-dev \
+    libkf6completion-dev \
+    libkf6kio-dev \
+    libkf6i18n-dev \
+    libkf6jobwidgets-dev \
+    libkf6networkmanagerqt-dev \
+    libkf6notifications-dev \
+    libkf6service-dev \
+    libkf6solid-dev \
+    libkf6widgetsaddons-dev \
+    libkf6colorscheme-dev \
+    libkf6kcmutils-dev \
+    libkf6svg-dev \
+    libkf6modemmanagerqt-dev \
+    libkf6wallet-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Создаем рабочую директорию внутри контейнера
+WORKDIR /src
+
