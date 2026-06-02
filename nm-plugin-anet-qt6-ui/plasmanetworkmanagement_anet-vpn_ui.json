@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "noreply@example.invalid",
+                "Name": "anet-vpn contributors"
+            }
+        ],
+        "Category": "VPNService",
+        "Description": "Tunnel connections via hello",
+        "EnabledByDefault": false,
+        "Icon": "",
+        "License": "GPL",
+        "Name": "helloworld VPN (hello-vpn)",
+        "Version": "0.1",
+        "Website": ""
+    },
+    "X-NetworkManager-Services": "org.freedesktop.NetworkManager.helloworld"
+}
