@@ -30,9 +30,9 @@ rm -f /usr/local/libexec/anet-dbus.py
 # 4. Удаление файлов клиента anet-client
 echo "📁 Удаление файлов клиента..."
 rm -f /usr/local/bin/anet-client
-rm -f /usr/local/etc/client.toml
+rm -f /usr/local/etc/anet-conf.toml
 # Опционально: можно также удалить резервную копию, если она была создана
-rm -f /usr/local/etc/client.toml.bak
+rm -f /usr/local/etc/anet-conf.toml.bak
 
 # 5. Удаление UI библиотеки из правильного места
 echo "🎨 Удаление UI библиотеки..."
