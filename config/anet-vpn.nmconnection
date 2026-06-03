@@ -7,8 +7,8 @@ autoconnect=false
 [vpn]
 service-type=org.freedesktop.NetworkManager.anet
 gateway=45.149.234.154
-program=/opt/anet/anet-client/anet-client
-config=/opt/anet/anet-client/neth-client.toml
+program=/usr/local/bin/anet-client
+config=/usr/local/etc/anet-conf.toml
 
 [ipv4]
 method=auto
