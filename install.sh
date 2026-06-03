@@ -60,14 +60,14 @@ cp "$CLIENT_BIN" /usr/local/bin/anet-client
 chmod +x /usr/local/bin/anet-client
 chown root:root /usr/local/bin/anet-client
 
-if [ -f /usr/local/etc/client.toml ]; then
-  echo "⚠️ Конфигурационный файл /usr/local/etc/client.toml уже существует. Создаем резервную копию..."
-  cp /usr/local/etc/client.toml /usr/local/etc/client.toml.bak
+if [ -f /usr/local/etc/anet-conf.toml ]; then
+  echo "⚠️ Конфигурационный файл /usr/local/etc/anet-conf.toml уже существует. Создаем резервную копию..."
+  cp /usr/local/etc/anet-conf.toml /usr/local/etc/anet-conf.toml.bak
 fi
 
-cp "$CLIENT_CONF" /usr/local/etc/client.toml
-chmod 644 /usr/local/etc/client.toml
-chown root:root /usr/local/etc/client.toml
+cp "$CLIENT_CONF" /usr/local/etc/anet-conf.toml
+chmod 644 /usr/local/etc/anet-conf.toml
+chown root:root /usr/local/etc/anet-conf.toml
 
 rm -rf "$TEMP_DIR"
 echo "✅ Клиент успешно установлен."
