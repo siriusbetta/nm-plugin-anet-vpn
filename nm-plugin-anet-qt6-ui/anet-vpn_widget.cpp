@@ -61,6 +61,7 @@ void AnetVpnWidget::onBrowseClicked() {
 	QString filePath = QFileDialog::getOpenFileName(this, "Выберите файл");
 	if (!filePath.isEmpty()) {
 	    lineEditPath->setText(filePath);
+	    settingChanged();
 	}
 }
 
