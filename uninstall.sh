@@ -1,48 +1,41 @@
 #!/bin/bash
-# Скрипт полного удаления nm-plugin-anet-vpn
-# Запускать с правами root: sudo ./uninstall.sh
 set -e
 
-# 1. Проверка прав суперпользователя
 if [ "$EUID" -ne 0 ]; then
-  echo "❌ Пожалуйста, запустите этот скрипт от имени root (используйте sudo)."
+  echo "Запустите скрипт от имени root: sudo ./uninstall_anet.sh"
   exit 1
 fi
 
-echo "🗑️ Начало удаления nm-helloworldvpn-plugin..."
+echo "Начало удаления nm-plugin-anet-vpn"
 
-# 2. Остановка соединения и очистка процессов
-echo "🛑 Остановка активных процессов и соединений..."
-nmcli connection down anet-vpn || true
-pkill -f anet-dbus.py || true
-pkill -f anet-client || true
-rm -f /tmp/anet-vpn.log || true
+echo "Остановка соединения и процессов"
+nmcli connection down anet-vpn 2>/dev/null || true
+pkill -f anet-dbus.py 2>/dev/null || true
+pkill -f anet-client 2>/dev/null || true
+rm -f /tmp/anet-vpn.log
 ip tuntap del dev anet-vpn0 mode tun 2>/dev/null || true
 
-# 3. Удаление установленных системных файлов
-echo "📁 Удаление системных файлов..."
+echo "Удаление файлов NetworkManager и DBus"
 rm -f /etc/NetworkManager/system-connections/anet-vpn.nmconnection
 rm -f /usr/lib/NetworkManager/VPN/anet.name
 rm -f /usr/share/dbus-1/system-services/org.freedesktop.NetworkManager.anet.service
 rm -f /etc/dbus-1/system.d/org.freedesktop.NetworkManager.anet.conf
 rm -f /usr/local/libexec/anet-dbus.py
 
-# 4. Удаление файлов клиента anet-client
-echo "📁 Удаление файлов клиента..."
+echo "Удаление Anet client"
 rm -f /usr/local/bin/anet-client
-rm -f /usr/local/etc/anet-conf.toml
-# Опционально: можно также удалить резервную копию, если она была создана
-rm -f /usr/local/etc/anet-conf.toml.bak
+rm -f /usr/local/etc/client.toml
+rm -f /usr/local/etc/client.toml.bak
 
-# 5. Удаление UI библиотеки из правильного места
-echo "🎨 Удаление UI библиотеки..."
-rm -f /usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/plasmanetworkmanagement_anet-vpn_ui.so 2>/dev/null || true
-rm -f /usr/lib/qt6/plugins/plasma/network/vpn/plasmanetworkmanagement_anet-vpn_ui.so 2>/dev/null || true
+echo "Удаление UI библиотеки"
+rm -f /usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/plasmanetworkmanagement_anet-vpn_ui.so
+rm -f /usr/lib/qt6/plugins/plasma/network/vpn/plasmanetworkmanagement_anet-vpn_ui.so
 
-# 6. Перезагрузка конфигурации D-Bus и NetworkManager
-echo "🔄 Перезагрузка конфигурации D-Bus и NetworkManager..."
+echo "Перезагрузка конфигурации DBus"
 dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
+
+echo "Перезапуск NetworkManager"
 systemctl restart NetworkManager
 nmcli connection reload
 
-echo "✅ Удаление успешно завершено!"
+echo "Удаление завершено"
