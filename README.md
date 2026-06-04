@@ -121,7 +121,7 @@ journalctl -u NetworkManager -f
 ```bash
 tail -f /tmp/anet-vpn.log
 ```
-
+---
 ## Сборка UI-виджета
 Сборка выполняется в контейнере podman.
 
@@ -145,6 +145,9 @@ TMPDIR=~/tmp-build podman run --rm -v "$PWD:/src:Z" kde-arch-dev \
 Готовый файл:
 
 build/bin/plasmanetworkmanagement_anet-vpn_ui.so
+
+---
+
 ## Возможные проблемы
 
 * NetworkManager не видит подключение
