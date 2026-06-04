@@ -1,111 +1,108 @@
-# Плагин Anet-VPN для NetworkManager
 
-## Описание
 
-NetworkManager плагин для клиента [**Anet**](https://github.com/ZeroTworu/anet). Позволяет работать со соединением нативно. Оно будет отображаться в списке соединений NM, работать кнопки "Connect/Disconnect". В Connection preferences можно выбрать нужный конфиг файл, а по нажатию кнопки редактировать, откроется выбранный файл в системном редакторе.
 
+# NetworkManager Anet VPN Plugin
+
+Плагин NetworkManager для VPN-клиента [Anet](https://github.com/ZeroTworu/anet).
+
+Позволяет управлять Anet VPN через NetworkManager: подключение отображается в списке соединений, поддерживаются действия `Connect` / `Disconnect`, а в настройках можно выбрать конфигурационный файл и открыть его для редактирования.
+
+---
+
+## Возможности
+
+- Интеграция Anet VPN с NetworkManager.
+- Управление через стандартный интерфейс NetworkManager.
+- Поддержка KDE Plasma / Qt6 UI.
+- Настройка пути к `config.toml`.
+- DBus-dispatcher для обработки команд подключения и отключения.
+  
+---
 
 ## Структура проекта
-* `config` — Файлы конфигурации NM (.nmconnection, .name, .service, .conf)
-* `src`    — DBus dispatcher (.py)
-* `nm-plugin-anet-qt6` — UI widget (.so)
 
+```text
+.
+├── config/                 # Конфигурации NetworkManager и DBus
+├── src/                    # DBus dispatcher
+├── nm-plugin-anet-qt6/     # Qt6 UI-виджет
+├── install.sh              # Установка
+└── uninstall.sh            # Удаление
+```
+---
+## Зависимости
+
+### Debian / Ubuntu
+
+```bash
+sudo apt update
+sudo apt install python3-dbus python3-gi unzip
+```
+
+### Arch Linux / Manjaro
+
+```bash
+sudo pacman -S python-dbus python-gobject unzip
+```
+---
 ## Установка
-Плагин упакован в архив со структурой такой же как в репозитории. Необходимо распаковать, в корень папки, рядом со скриптом install.sh положить архив с anet-client'ом в виде client-linux-amd64_xx.xx.xx.zip.
-### Install
+Перед установкой положите архив с клиентом Anet рядом со скриптом install.sh.
+
+Ожидаемое имя архива:
+
+client-linux-amd64_xx.xx.xx.zip
+
+Пример структуры:
+```text
+.
+├── config/
+├── src/
+├── nm-plugin-anet-qt6/
+├── install.sh
+├── uninstall.sh
+└── client-linux-amd64_xx.xx.xx.zip
+```
+Запустите установку:
 
 ```bash
 chmod +x install.sh
 sudo ./install.sh
 ```
 
-### Uninstall
+После установки перезапустите NetworkManager:
+
+```bash
+sudo systemctl restart NetworkManager
+sudo nmcli connection reload
+```
+
+Подключение:
+
+```bash
+sudo nmcli connection up anet-vpn
+```
+
+Отключение:
+
+```bash
+sudo nmcli connection down anet-vpn
+```
+
+Удаление
 
 ```bash
 chmod +x uninstall.sh
 sudo ./uninstall.sh
 ```
 
-## Ниже тоже самое, по шагам, что в скрипе install.sh
+После удаления:
 
-### nmconnection
-соединение для NM, которое будет отображаться в меню аплета, и заодно там же хранится секция \[vpn\], где прописаны пути к **anet-client** и **config.toml**. NM работает с этим файлом как хранилищем настроек ВПНа. Важно чтобы права доступа были для root, иначе NM не подхватит.
-
-```bash
-cp config/anet-vpn.nmconnection /etc/NetworkManager/system-connections/anet-vpn.nmconnection
-sudo chmod 600 /etc/NetworkManager/system-connections/anet-vpn.nmconnection
-sudo chown root:root /etc/NetworkManager/system-connections/anet-vpn.nmconnection
-```
-
-### name
-
-связывает обработчик dbus команд и NM connection с узлом DBus
-
-```bash
-cp config/anet.name  /usr/lib/NetworkManager/VPN/anet.name
-```
-### service
-
-по своей структуре повторяет nmconnection. И в plasma работает и без него. Возможно это надо в среде GTK. Возможно, надо будет удалить.
-```bash
-cp config/org.freedesktop.NetworkManager.anet.service /usr/share/dbus-1/system-services/org.freedesktop.NetworkManager.anet.service
-```
-### conf
-определяет политику сервиса. Позволяет работать от root
-```bash
-cp config/org.freedesktop.NetworkManager.anet.conf /etc/dbus-1/system.d/org.freedesktop.NetworkManager.anet.conf
-sudo dbus-send \
-  --system \
-  --type=method_call \
-  --dest=org.freedesktop.DBus \
-  / \
-  org.freedesktop.DBus.ReloadConfig
-```
-
-### DBus dispatcher
-Висит на шине DBus и перехватывает команды от NM (connect, disconnect). 
-
-```bash
-cp src/anet-dbus.py /usr/local/libexec/anet-dbus.py
-sudo chmod +x /usr/local/libexec/anet-dbus.py
-sudo chown root:root /usr/local/libexec/anet-dbus.py
-```
-## Зависимости
-### для Debian
-```bash
-sudo apt update
-sudo apt install python3-dbus python3-gi
-```
-### для Arch/Manjaro
-```bash
-sudo pacman -S python-dbus python-gobject
-```
-
-## UI widget
-
-```bash
-cd nm-plugin-hello-qt6-ui
-sudo cp build/bin/plasmanetworkmanagement_anet-vpn_ui.so /usr/lib/qt6/plugins/plasma/network/vpn/
-sudo chmod 755 /usr/lib/qt6/plugins/plasma/network/vpn/plasmanetworkmanagement_anet-vpn_ui.so
-```
-
-## anet-client
-
-```bash
-unzip client-linux-amd64_xx.xx.xx.zip
-cd client-linux-amd64
-cp anet-client /usr/local/bin/
-cp config.toml /usr/local/etc/anet-config.toml
-```
-
-## restart NetworkManager
 ```bash
 sudo systemctl restart NetworkManager
-sudo nmcli connection reload
-sudo nmcli connection up anet-vpn
 ```
 
-## debug
+Отладка
+Сброс состояния:
 
 ```bash
 sudo pkill -f anet-dbus.py || true
@@ -113,25 +110,70 @@ sudo rm -f /tmp/anet-vpn.log
 sudo ip tuntap del dev anet-vpn0 mode tun 2>/dev/null || true
 ```
 
-## Сборка UI
+Логи NetworkManager:
 
-Сборка происходит в контейнере podman
-
-шаблон:
 ```bash
-TMPDIR=~/tmp-build podman build -f \<Containerfile-name\> -t \<image name\> \<src\>
+journalctl -u NetworkManager -f
 ```
 
-- KDE
+Лог плагина:
 
 ```bash
-mkdir ~/tmp-build
-cd nm-plugin-hello-qt6-ui 
+tail -f /tmp/anet-vpn.log
+```
+
+## Сборка UI-виджета
+Сборка выполняется в контейнере podman.
+
+```bash
+mkdir -p ~/tmp-build
+cd nm-plugin-anet-qt6
+```
+
+Сборка контейнера:
+
+```bash
 TMPDIR=~/tmp-build podman build -f Container-arch -t kde-arch-dev .
 ```
-- сборка ui виджета qt6
 
-```bash  
-TMPDIR=~/tmp-build podman run --rm -v "$PWD:/src:Z" kde-arch-dev 
-sh -c "rm -rf build && cmake -B build && cmake --build build"
+Сборка UI:
+
+```bash
+TMPDIR=~/tmp-build podman run --rm -v "$PWD:/src:Z" kde-arch-dev \
+  sh -c "rm -rf build && cmake -B build && cmake --build build"
+```
+Готовый файл:
+
+build/bin/plasmanetworkmanagement_anet-vpn_ui.so
+## Возможные проблемы
+
+* NetworkManager не видит подключение
+  Проверьте права:
+```bash
+ls -l /etc/NetworkManager/system-connections/anet-vpn.nmconnection
+```
+
+  Должно быть:
+
+-rw------- root root
+  Исправить:
+
+```bash
+sudo chmod 600 /etc/NetworkManager/system-connections/anet-vpn.nmconnection
+sudo chown root:root /etc/NetworkManager/system-connections/anet-vpn.nmconnection
+sudo nmcli connection reload
+```
+
+* UI-виджет не отображается
+  Проверьте путь установки:
+
+```bash
+ls -l /usr/lib/qt6/plugins/plasma/network/vpn/
+```
+
+В некоторых дистрибутивах путь может отличаться:
+
+```bash
+/usr/lib/qt6/plugins/plasma/network/vpn/
+/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/
 ```
