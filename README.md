@@ -1,7 +1,7 @@
 
 ## Описание
 
-NetworkManager плагин для клиента [**Anet**](https://github.com/ZeroTworu/anet). 
+NetworkManager плагин для клиента [**Anet**](https://github.com/ZeroTworu/anet). Позволяет работать со соединением нативно. Оно будет отображаться в списке соединений NM, работать кнопки "Connect/Disconnect". В Connection preferences можно выбрать нужный конфиг файл, а по нажатию кнопки редактировать, откроется выбранный файл в системном редакторе.
 
 
 ## Плагин NetworkManager
