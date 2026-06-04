@@ -88,17 +88,21 @@ sudo cp build/bin/plasmanetworkmanagement_anet-vpn_ui.so /usr/lib/qt6/plugins/pl
 sudo chmod 755 /usr/lib/qt6/plugins/plasma/network/vpn/plasmanetworkmanagement_anet-vpn_ui.so
 ```
 
+## anet-client
+
+```bash
+unzip client-linux-amd64_xx.xx.xx.zip
+cd client-linux-amd64
+cp anet-client /usr/local/bin/
+cp config.toml /usr/local/etc/anet-config.toml
+```
+
 ## restart NetworkManager
 ```bash
 sudo systemctl restart NetworkManager
 sudo nmcli connection reload
 sudo nmcli connection up anet-vpn
 ```
-## anet-client
-
-```bash
-unzip 
-
 
 ## debug
 
