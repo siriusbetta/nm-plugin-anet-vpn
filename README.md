@@ -1,13 +1,14 @@
+# Плагин Anet-VPN для NetworkManager
 
 ## Описание
 
-NetworkManager плагин для клиента [**Anet**](https://github.com/ZeroTworu/anet). 
+NetworkManager плагин для клиента [**Anet**](https://github.com/ZeroTworu/anet). Позволяет работать со соединением нативно. Оно будет отображаться в списке соединений NM, работать кнопки "Connect/Disconnect". В Connection preferences можно выбрать нужный конфиг файл, а по нажатию кнопки редактировать, откроется выбранный файл в системном редакторе.
 
 
-## Плагин NetworkManager
-- NM configs (.nmconnection, .name, .service, .conf)
-- DBus dispatcher (.py)
-- UI (.so)
+## Структура проекта
+* `config` — Файлы конфигурации NM (.nmconnection, .name, .service, .conf)
+* `src`    — DBus dispatcher (.py)
+* `nm-plugin-anet-qt6` — UI widget (.so)
 
 ## Установка
 Плагин упакован в архив со структурой такой же как в репозитории. Необходимо распаковать, в корень папки, рядом со скриптом install.sh положить архив с anet-client'ом в виде client-linux-amd64_xx.xx.xx.zip.
