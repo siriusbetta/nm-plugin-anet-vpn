@@ -145,6 +145,7 @@ build/bin/plasmanetworkmanagement_anet-vpn_ui.so
 ## Возможные проблемы
 
 * NetworkManager не видит подключение
+
   Проверьте права:
 ```bash
 ls -l /etc/NetworkManager/system-connections/anet-vpn.nmconnection
@@ -153,6 +154,7 @@ ls -l /etc/NetworkManager/system-connections/anet-vpn.nmconnection
   Должно быть:
 
 -rw------- root root
+
   Исправить:
 
 ```bash
@@ -162,6 +164,7 @@ sudo nmcli connection reload
 ```
 
 * UI-виджет не отображается
+
   Проверьте путь установки:
 
 ```bash
