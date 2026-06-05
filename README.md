@@ -155,7 +155,7 @@ ls -l /etc/NetworkManager/system-connections/anet-vpn.nmconnection
 
 -rw------- root root
 
-  Исправить:
+   Исправить:
 
 ```bash
 sudo chmod 600 /etc/NetworkManager/system-connections/anet-vpn.nmconnection
@@ -171,7 +171,7 @@ sudo nmcli connection reload
 ls -l /usr/lib/qt6/plugins/plasma/network/vpn/
 ```
 
-В некоторых дистрибутивах путь может отличаться:
+  В некоторых дистрибутивах путь может отличаться:
 
 ```bash
 /usr/lib/qt6/plugins/plasma/network/vpn/
