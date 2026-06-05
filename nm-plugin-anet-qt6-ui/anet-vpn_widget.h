@@ -26,11 +26,11 @@ public:
 private slots:
     void onBrowseClicked(); 
         
-    void onShowNameClicked(); 
+    void onEditClicked(); 
 
 private:
     NetworkManager::VpnSetting::Ptr m_setting;
     QLineEdit* lineEditPath;
     QPushButton* buttonBrowse;
-    QPushButton* buttonShowName;
+    QPushButton* buttonEdit;
 };

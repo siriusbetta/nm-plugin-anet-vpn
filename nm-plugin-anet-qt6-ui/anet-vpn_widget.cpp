@@ -16,7 +16,7 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
     lineEditPath->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
     buttonBrowse = new QPushButton("Выбрать файл", this);
-    buttonShowName = new QPushButton("Показать имя файла", this);
+    buttonEdit = new QPushButton("Редактировать", this);
 
     auto* pathLayout = new QHBoxLayout;
     pathLayout->addWidget(lineEditPath);
@@ -24,12 +24,12 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
 
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->addLayout(pathLayout);
-    mainLayout->addWidget(buttonShowName);
+    mainLayout->addWidget(buttonEdit);
     mainLayout->setContentsMargins(12, 12, 12, 12);
     mainLayout->setSpacing(10);
 
     connect(buttonBrowse, &QPushButton::clicked, this, &AnetVpnWidget::onBrowseClicked);
-    connect(buttonShowName, &QPushButton::clicked, this, &AnetVpnWidget::onShowNameClicked);
+    connect(buttonEdit, &QPushButton::clicked, this, &AnetVpnWidget::onEditClicked);
 
     setLayout(mainLayout);
     setWindowTitle("Выбор файла");
@@ -62,7 +62,7 @@ QVariantMap AnetVpnWidget::setting() const
     data.insert("config", pathToSave);
     setting.setData(data);
 
-    return setting.toMap(); // Возвращаем правильный тип Ptr!
+    return setting.toMap(); 
 }
 
 void AnetVpnWidget::onBrowseClicked() {
@@ -73,7 +73,7 @@ void AnetVpnWidget::onBrowseClicked() {
 	}
 }
 
-void AnetVpnWidget::onShowNameClicked() {
+void AnetVpnWidget::onEditClicked() {
 	QString filePath = lineEditPath->text();
 	QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
 }
