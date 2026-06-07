@@ -104,6 +104,7 @@ echo "Перезагрузка конфигурации DBus"
 dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
 
 UI_DIR=""
+
 if [ -f /etc/os-release ]; then
 	source /etc/os-release
 	echo "Дистрибутив: $NAME"

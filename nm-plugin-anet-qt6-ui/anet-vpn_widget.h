@@ -21,16 +21,16 @@ public:
 
     void loadConfig(const NetworkManager::Setting::Ptr &setting) override;
     void loadSecrets(const NetworkManager::Setting::Ptr &setting) override;
-    QVariantMap setting() const override;
+    virtual QVariantMap setting() const override;
 
 private slots:
     void onBrowseClicked(); 
         
-    void onShowNameClicked(); 
+    void onEditClicked(); 
 
 private:
     NetworkManager::VpnSetting::Ptr m_setting;
     QLineEdit* lineEditPath;
     QPushButton* buttonBrowse;
-    QPushButton* buttonShowName;
+    QPushButton* buttonEdit;
 };
