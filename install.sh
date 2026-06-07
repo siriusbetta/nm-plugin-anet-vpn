@@ -99,12 +99,68 @@ cp ./anet-dbus.py /usr/local/libexec/anet-dbus.py
 chmod +x /usr/local/libexec/anet-dbus.py
 chown root:root /usr/local/libexec/anet-dbus.py
 
+<<<<<<< Updated upstream
 # 7. Определение пути установки UI библиотеки (multiarch для Debian/Ubuntu или стандартный для Arch)
 UI_DIR=""
 if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then
   UI_DIR="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/"
 elif [ -d "/usr/lib/qt6/plugins/plasma/network/vpn/" ]; then
   UI_DIR="/usr/lib/qt6/plugins/plasma/network/vpn/"
+=======
+if [ -f /etc/os-release ]; then
+	source /etc/os-release
+	echo "Дистрибутив: $NAME"
+else
+	echo "Файл /ect/os-release не найден"
+fi
+
+OS="$ID"
+
+if [ "$ID" == "arch" ] || [ "$ID" == "manjaro" ]; then
+	OS="arch"
+fi
+
+
+DE=$(echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]')
+
+DESHORT=""
+case "$DE" in
+    *gnome*)
+        echo "Запущен GNOME"
+	DESHORT="gnome"
+        ;;
+    *kde*|*plasma*)
+        echo "Запущен KDE Plasma"
+	DESHORT="kde-plasma"
+        ;;
+    *xfce*)
+        echo "Запущен XFCE"
+	DESHORT="xfce"
+        ;;
+    *mate*)
+        echo "Запущен MATE"
+	DESHORT="mate"
+        ;;
+    *cinnamon*)
+        echo "Запущен Cinnamon"
+	DESHORT="cinamon"
+        ;;
+    *)
+        echo "Окружение не определено или используется консоль: $XDG_CURRENT_DESKTOP"
+        ;;
+esac
+
+if [ "$OS" == "debian" ] && [ "$DESHORT" == "kde-plasma" ]; then
+	if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then
+	  UI_DIR="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/"
+	fi
+fi
+
+if [ "$OS" == "arch" ] && [ "$DESHORT" == "kde-plasma" ]; then
+	if [ -d "/usr/lib/qt6/plugins/plasma/network/vpn/" ]; then
+	  UI_DIR="/usr/lib/qt6/plugins/plasma/network/vpn/"
+	fi
+>>>>>>> Stashed changes
 fi
 
 # 8. Установка UI библиотеки (Qt6)

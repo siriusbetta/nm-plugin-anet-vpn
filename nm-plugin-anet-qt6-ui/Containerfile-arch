@@ -1,6 +1,6 @@
 FROM archlinux:latest
 RUN pacman -Syu --noconfirm \
-    base-devel cmake extra-cmake-modules \
+    base-devel cmake extra-cmake-modules clang \
     plasma-workspace \
     kcoreaddons kconfig kwidgetsaddons kio ki18n kcrash kcmutils \
     networkmanager-qt modemmanager-qt \
