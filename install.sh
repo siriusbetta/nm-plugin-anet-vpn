@@ -105,10 +105,58 @@ dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesk
 
 UI_DIR=""
 
-if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then
-  UI_DIR="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/"
-elif [ -d "/usr/lib/qt6/plugins/plasma/network/vpn/" ]; then
-  UI_DIR="/usr/lib/qt6/plugins/plasma/network/vpn/"
+if [ -f /etc/os-release ]; then
+	source /etc/os-release
+	echo "Дистрибутив: $NAME"
+else
+	echo "Файл /ect/os-release не найден"
+fi
+
+OS_NAME="$ID"
+
+if [ "$ID" = "arch" ] || [ "$ID" = "manjaro" ]; then
+	OS_NAME="arch"
+fi
+
+DE_NAME=""
+DE=$(echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]')
+
+case "$DE" in
+    *gnome*)
+        echo "Запущен GNOME"
+	DE_NAME="gnome"
+        ;;
+    *kde*|*plasma*)
+        echo "Запущен KDE Plasma"
+	DE_NAME="kde-plasma"
+        ;;
+    *xfce*)
+        echo "Запущен XFCE"
+	DE_NAME="xfce"
+        ;;
+    *mate*)
+        echo "Запущен MATE"
+	DE_NAME="mate"
+        ;;
+    *cinnamon*)
+        echo "Запущен Cinnamon"
+	DE_NAME="cinnamon"
+        ;;
+    *)
+        echo "Окружение не определено или используется консоль: $XDG_CURRENT_DESKTOP"
+        ;;
+esac
+
+if [ "$OS_NAME"=="debian" ] && [ "$DE_NAME"=="kde-plasma" ]; then
+	if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then
+	  UI_DIR="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/"
+	fi
+fi
+
+if [ "$OS_NAME"=="arch" ] && [ "$DE_NAME"=="kde-plasma" ]; then
+	if [ -d "/usr/lib/qt6/plugins/plasma/network/vpn/" ]; then
+	  UI_DIR="/usr/lib/qt6/plugins/plasma/network/vpn/"
+	fi
 fi
 
 UI_FILE="./nm-plugin-anet-qt6-ui/build/bin/plasmanetworkmanagement_anet-vpn_ui.so"
