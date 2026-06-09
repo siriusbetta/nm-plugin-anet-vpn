@@ -30,7 +30,7 @@ private slots:
 
 private:
     NetworkManager::VpnSetting::Ptr m_setting;
-    QLineEdit* lineEditPath;
-    QPushButton* buttonBrowse;
-    QPushButton* buttonEdit;
+    QLineEdit* m_lineEditPath;
+    QPushButton* m_buttonBrowse;
+    QPushButton* m_buttonEdit;
 };
