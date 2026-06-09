@@ -7,7 +7,7 @@
             }
         ],
         "Category": "VPNService",
-        "Description": "Tunnel connections via hello",
+        "Description": "Plugin for tunnel connections via anet",
         "EnabledByDefault": false,
         "Icon": "",
         "License": "GPL",

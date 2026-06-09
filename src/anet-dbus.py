@@ -24,7 +24,7 @@ IFACE = "org.freedesktop.NetworkManager.VPN.Plugin"
 LOG_FILE = "/tmp/anet-vpn-nm.log"
 
 DEFAULT_ANET_CLIENT = "/usr/local/bin/anet-client"
-DEFAULT_ANET_CONFIG = "/etc/anet/config.conf"
+DEFAULT_ANET_CONFIG = "/usr/locat/etc/config.toml"
 
 DEFAULT_DNS = ["1.1.1.1", "8.8.8.8"]
 
@@ -324,8 +324,8 @@ class AnetVpnPlugin(dbus.service.Object):
                 log(traceback.format_exc())
 
         # Пример:
-        # [CORE] Connecting to 45.149.234.154:8443
-        # [QUIC] Connecting to 45.149.234.154:8443...
+        # [CORE] Connecting to 192.168.24.14:8443
+        # [QUIC] Connecting to 192.168.24.14:8443...
         if "Connecting to " in line and not self.external_gateway:
             try:
                 value = line.split("Connecting to ", 1)[1].strip()
@@ -396,13 +396,13 @@ class AnetVpnPlugin(dbus.service.Object):
                 raise RuntimeError("VPN IP was not parsed from anet-client log")
 
             if not self.vpn_gw:
-                # По вашему логу обычно это 10.0.0.1.
+                # По логу обычно это 10.0.0.1.
                 # Если строка Created TUN не распарсилась, используем fallback.
                 self.vpn_gw = "10.0.0.1"
 
             if not self.external_gateway:
                 # NetworkManager хочет gateway.
-                # Лучше указывать gateway в nmconnection.
+                # gateway в nmconnection.
                 raise RuntimeError("external VPN gateway was not parsed/found")
 
             config = dbus.Dictionary(
