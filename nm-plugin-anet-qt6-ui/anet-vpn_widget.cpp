@@ -10,26 +10,26 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
     , m_setting(setting)
 {
 
-    lineEditPath = new QLineEdit(this);
-    lineEditPath->setReadOnly(true);
-    lineEditPath->setPlaceholderText("Путь к файлу не выбран");
-    lineEditPath->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_lineEditPath = new QLineEdit(this);
+    m_lineEditPath->setReadOnly(true);
+    m_lineEditPath->setPlaceholderText("Путь к файлу не выбран");
+    m_lineEditPath->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-    buttonBrowse = new QPushButton("Выбрать файл", this);
-    buttonEdit = new QPushButton("Редактировать", this);
+    m_buttonBrowse = new QPushButton("Выбрать файл", this);
+    m_buttonEdit = new QPushButton("Редактировать", this);
 
     auto* pathLayout = new QHBoxLayout;
-    pathLayout->addWidget(lineEditPath);
-    pathLayout->addWidget(buttonBrowse);
+    pathLayout->addWidget(m_lineEditPath);
+    pathLayout->addWidget(m_buttonBrowse);
 
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->addLayout(pathLayout);
-    mainLayout->addWidget(buttonEdit);
+    mainLayout->addWidget(m_buttonEdit);
     mainLayout->setContentsMargins(12, 12, 12, 12);
     mainLayout->setSpacing(10);
 
-    connect(buttonBrowse, &QPushButton::clicked, this, &AnetVpnWidget::onBrowseClicked);
-    connect(buttonEdit, &QPushButton::clicked, this, &AnetVpnWidget::onEditClicked);
+    connect(m_buttonBrowse, &QPushButton::clicked, this, &AnetVpnWidget::onBrowseClicked);
+    connect(m_buttonEdit, &QPushButton::clicked, this, &AnetVpnWidget::onEditClicked);
 
     setLayout(mainLayout);
     setWindowTitle("Выбор файла");
@@ -44,7 +44,7 @@ void AnetVpnWidget::loadConfig(const NetworkManager::Setting::Ptr &setting)
     const NMStringMap data = m_setting->data();
 
     QString savedPath = data.value(QStringLiteral("config"));
-    lineEditPath->setText(savedPath);
+    m_lineEditPath->setText(savedPath);
 }
 
 void AnetVpnWidget::loadSecrets(const NetworkManager::Setting::Ptr &setting)
@@ -58,7 +58,7 @@ QVariantMap AnetVpnWidget::setting() const
     setting.setServiceType(QLatin1String("org.freedesktop.NetworkManager.anet"));
 
     NMStringMap data = m_setting->data();
-    QString pathToSave = lineEditPath->text();
+    QString pathToSave = m_lineEditPath->text();
     data.insert("config", pathToSave);
     setting.setData(data);
 
@@ -68,13 +68,13 @@ QVariantMap AnetVpnWidget::setting() const
 void AnetVpnWidget::onBrowseClicked() {
 	QString filePath = QFileDialog::getOpenFileName(this, "Выберите файл");
 	if (!filePath.isEmpty()) {
-	    lineEditPath->setText(filePath);
+	    m_lineEditPath->setText(filePath);
 	    settingChanged();
 	}
 }
 
 void AnetVpnWidget::onEditClicked() {
-	QString filePath = lineEditPath->text();
+	QString filePath = m_lineEditPath->text();
 	QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
 }
 
