@@ -3,7 +3,7 @@
 
 # NetworkManager Anet VPN Plugin
 
-Плагин NetworkManager для VPN-клиента [Anet](https://github.com/ZeroTworu/anet).
+Плагин NetworkManager для VPN-клиента [Anet https://github.com/ZeroTworu/anet](https://github.com/ZeroTworu/anet).
 
 Позволяет управлять Anet VPN через NetworkManager: подключение отображается в списке соединений, поддерживаются действия `Connect` / `Disconnect`, а в настройках можно выбрать конфигурационный файл и открыть его для редактирования.
 
