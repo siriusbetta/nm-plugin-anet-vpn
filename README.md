@@ -153,8 +153,8 @@ cd nm-plugin-anet-gtk-ui
 ./build_arch.sh    # Arch Linux / Manjaro
 ./build_debian.sh  # Debian / Ubuntu
 ```
-
 Скрипт сам создаёт Podman-контейнер, запускает CMake и оставляет GTK-библиотеки в `nm-plugin-anet-gtk-ui/build/`.
+
 ---
 
 ## Сборка библиотек
