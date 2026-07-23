@@ -13,7 +13,7 @@
 
 - Интеграция Anet VPN с NetworkManager.
 - Управление через стандартный интерфейс NetworkManager.
-- Поддержка KDE Plasma / Qt6 UI.
+- Поддержка KDE Plasma/Qt6 и Gnome/GTK.
 - Настройка пути к `config.toml`.
 - DBus-dispatcher для обработки команд подключения и отключения.
   
