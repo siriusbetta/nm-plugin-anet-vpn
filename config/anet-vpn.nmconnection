@@ -8,7 +8,7 @@ autoconnect=false
 service-type=org.freedesktop.NetworkManager.anet
 gateway=45.149.234.154
 program=/usr/local/bin/anet-client
-config=/usr/local/etc/anet-conf.toml
+config=/usr/local/etc/client.toml
 
 [ipv4]
 method=auto

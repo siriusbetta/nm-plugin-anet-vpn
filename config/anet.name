@@ -2,3 +2,11 @@
 name=anet
 service=org.freedesktop.NetworkManager.anet
 program=/usr/local/libexec/anet-dbus.py
+
+[libnm]
+plugin=libnm-vpn-plugin-anet.so
+
+[GNOME]
+auth-dialog=/usr/local/libexec/nm-anet-auth-dialog
+supports-external-ui-mode=true
+supports-hints=true
