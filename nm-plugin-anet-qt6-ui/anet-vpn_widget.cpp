@@ -21,10 +21,10 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
     auto* pathLayout = new QHBoxLayout;
     pathLayout->addWidget(m_lineEditPath);
     pathLayout->addWidget(m_buttonBrowse);
+    pathLayout->addWidget(m_buttonEdit);
 
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->addLayout(pathLayout);
-    mainLayout->addWidget(m_buttonEdit);
     mainLayout->setContentsMargins(12, 12, 12, 12);
     mainLayout->setSpacing(10);
 
@@ -77,4 +77,3 @@ void AnetVpnWidget::onEditClicked() {
 	QString filePath = m_lineEditPath->text();
 	QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
 }
-
