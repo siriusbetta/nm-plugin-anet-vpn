@@ -59,6 +59,12 @@ echo "Установка Anet client"
 mkdir -p /usr/local/bin
 mkdir -p /usr/local/etc
 
+CONFIG_OWNER="${SUDO_USER:-root}"
+if ! id "$CONFIG_OWNER" >/dev/null 2>&1; then
+  CONFIG_OWNER=root
+fi
+CONFIG_GROUP=$(id -gn "$CONFIG_OWNER")
+
 cp "$CLIENT_BIN" /usr/local/bin/anet-client
 chmod 755 /usr/local/bin/anet-client
 chown root:root /usr/local/bin/anet-client
@@ -68,8 +74,9 @@ if [ -f /usr/local/etc/client.toml ]; then
 fi
 
 cp "$CLIENT_CONF" /usr/local/etc/client.toml
-chmod 644 /usr/local/etc/client.toml
-chown root:root /usr/local/etc/client.toml
+chmod 600 /usr/local/etc/client.toml
+chown "$CONFIG_OWNER:$CONFIG_GROUP" /usr/local/etc/client.toml
+echo "Владелец client.toml: $CONFIG_OWNER:$CONFIG_GROUP"
 
 echo "Установка конфигурации NetworkManager"
 mkdir -p /etc/NetworkManager/system-connections
@@ -99,6 +106,11 @@ cp ./anet-dbus.py /usr/local/libexec/anet-dbus.py
 
 chmod 755 /usr/local/libexec/anet-dbus.py
 chown root:root /usr/local/libexec/anet-dbus.py
+
+echo "Установка GNOME auth-helper"
+cp ./config/anet-auth-dialog.py /usr/local/libexec/nm-anet-auth-dialog
+chmod 755 /usr/local/libexec/nm-anet-auth-dialog
+chown root:root /usr/local/libexec/nm-anet-auth-dialog
 
 echo "Перезагрузка конфигурации DBus"
 dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
@@ -147,30 +159,44 @@ case "$DE" in
         ;;
 esac
 
-if [ "$OS_NAME"=="debian" ] && [ "$DE_NAME"=="kde-plasma" ]; then
+if [ "$OS_NAME" = "debian" ] && [ "$DE_NAME" = "kde-plasma" ]; then
 	if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then
 	  UI_DIR="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/"
 	fi
 fi
 
-if [ "$OS_NAME"=="arch" ] && [ "$DE_NAME"=="kde-plasma" ]; then
+if [ "$OS_NAME" = "arch" ] && [ "$DE_NAME" = "kde-plasma" ]; then
 	if [ -d "/usr/lib/qt6/plugins/plasma/network/vpn/" ]; then
 	  UI_DIR="/usr/lib/qt6/plugins/plasma/network/vpn/"
 	fi
 fi
 
-UI_FILE="./nm-plugin-anet-qt6-ui/build/bin/plasmanetworkmanagement_anet-vpn_ui.so"
-
-if [ -f "$UI_FILE" ]; then
-  if [ -n "$UI_DIR" ]; then
-    echo "Установка UI библиотеки"
-    cp "$UI_FILE" "$UI_DIR"
-    chmod 755 "$UI_DIR/plasmanetworkmanagement_anet-vpn_ui.so"
-  else
-    echo "Директория для UI библиотеки не найдена"
+if [ "$DE_NAME" = "gnome" ]; then
+  NM_LIBDIR=$(pkg-config --variable=libdir libnm 2>/dev/null || true)
+  NM_UI_DIR="${NM_LIBDIR:-/usr/lib}/NetworkManager"
+  if [ ! -d "$NM_UI_DIR" ]; then
+    echo "Каталог GTK NetworkManager не найден: $NM_UI_DIR" >&2
+    exit 1
   fi
-else
-  echo "UI библиотека не найдена, установка UI пропущена"
+  install -m 755 ./nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet.so "$NM_UI_DIR/"
+  install -m 755 ./nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet-editor.so "$NM_UI_DIR/"
+  install -m 755 ./nm-plugin-anet-gtk-ui/build/libnm-gtk4-vpn-plugin-anet-editor.so "$NM_UI_DIR/"
+fi
+
+if [ "$DE_NAME" = "kde-plasma" ]; then
+  UI_FILE="./nm-plugin-anet-qt6-ui/build/bin/plasmanetworkmanagement_anet-vpn_ui.so"
+
+  if [ -f "$UI_FILE" ]; then
+    if [ -n "$UI_DIR" ]; then
+      echo "Установка KDE Qt6 UI библиотеки"
+      cp "$UI_FILE" "$UI_DIR"
+      chmod 755 "$UI_DIR/plasmanetworkmanagement_anet-vpn_ui.so"
+    else
+      echo "Каталог KDE Qt6 UI не найден; установка UI пропущена" >&2
+    fi
+  else
+    echo "KDE Qt6 UI библиотека не найдена; установка UI пропущена" >&2
+  fi
 fi
 
 echo "Перезапуск NetworkManager"

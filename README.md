@@ -25,6 +25,7 @@
 .
 ├── config/                 # Конфигурации NetworkManager и DBus
 ├── src/                    # DBus dispatcher
+├── nm-plugin-anet-gtk-ui/  # GTK3/GTK4 UI-виджет
 ├── nm-plugin-anet-qt6-ui/  # Qt6 UI-виджет
 ├── install.sh              # Установка
 └── uninstall.sh            # Удаление
@@ -57,6 +58,7 @@ client-linux-amd64_xx.xx.xx.zip
 .
 ├── config/
 ├── src/
+├── nm-plugin-anet-gtk-ui/
 ├── nm-plugin-anet-qt6-ui/
 ├── install.sh
 ├── uninstall.sh
@@ -119,6 +121,8 @@ tail -f /tmp/anet-vpn.log
 ## Сборка UI-виджета
 Сборка выполняется в контейнере podman.
 
+### Сборка Qt6
+
 ```bash
 mkdir -p ~/tmp-build
 cd nm-plugin-anet-qt6
@@ -139,6 +143,28 @@ TMPDIR=~/tmp-build podman run --rm -v "$PWD:/src:Z" kde-arch-dev \
 Готовый файл:
 
 build/bin/plasmanetworkmanagement_anet-vpn_ui.so
+
+### Сборка GTK
+
+Сборка GTK выполняется так же, как контейнерная сборка Qt6:
+
+```bash
+cd nm-plugin-anet-gtk-ui
+./build_arch.sh    # Arch Linux / Manjaro
+./build_debian.sh  # Debian / Ubuntu
+```
+
+Скрипт сам создаёт Podman-контейнер, запускает CMake и оставляет GTK-библиотеки в `nm-plugin-anet-gtk-ui/build/`.
+---
+
+## Сборка библиотек
+
+Каждая библиотека собирается отдельно в соответствующей директории проекта:
+
+- GTK-библиотеки — в `nm-plugin-anet-gtk-ui/`;
+- Qt6-библиотека — в `nm-plugin-anet-qt6-ui/`.
+
+Установочный скрипт `install.sh` сам определяет операционную систему и графическое окружение и выбирает каталог установки для собранной библиотеки.
 
 ---
 

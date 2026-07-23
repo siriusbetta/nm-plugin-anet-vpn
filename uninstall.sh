@@ -21,6 +21,7 @@ rm -f /usr/lib/NetworkManager/VPN/anet.name
 rm -f /usr/share/dbus-1/system-services/org.freedesktop.NetworkManager.anet.service
 rm -f /etc/dbus-1/system.d/org.freedesktop.NetworkManager.anet.conf
 rm -f /usr/local/libexec/anet-dbus.py
+rm -f /usr/local/libexec/nm-anet-auth-dialog
 
 echo "Удаление Anet client"
 rm -f /usr/local/bin/anet-client
@@ -70,19 +71,25 @@ case "$DE" in
         ;;
 esac
 
-if [ "$OS_NAME"=="debian" ] && [ "$DE_NAME"=="kde-plasma" ]; then
+if [ "$OS_NAME" = "debian" ] && [ "$DE_NAME" = "kde-plasma" ]; then
 	if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then
 	  UI_DIR="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/"
 	fi
 fi
 
-if [ "$OS_NAME"=="arch" ] && [ "$DE_NAME"=="kde-plasma" ]; then
+if [ "$OS_NAME" = "arch" ] && [ "$DE_NAME" = "kde-plasma" ]; then
 	if [ -d "/usr/lib/qt6/plugins/plasma/network/vpn/" ]; then
 	  UI_DIR="/usr/lib/qt6/plugins/plasma/network/vpn/"
 	fi
 fi
 echo "Удаление UI библиотеки"
 rm -f "$UI_DIR/plasmanetworkmanagement_anet-vpn_ui.so"
+
+NM_LIBDIR=$(pkg-config --variable=libdir libnm 2>/dev/null || true)
+NM_UI_DIR="${NM_LIBDIR:-/usr/lib}/NetworkManager"
+rm -f "$NM_UI_DIR/libnm-vpn-plugin-anet.so"
+rm -f "$NM_UI_DIR/libnm-vpn-plugin-anet-editor.so"
+rm -f "$NM_UI_DIR/libnm-gtk4-vpn-plugin-anet-editor.so"
 
 echo "Перезагрузка конфигурации DBus"
 dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
