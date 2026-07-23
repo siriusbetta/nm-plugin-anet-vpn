@@ -1,0 +1,13 @@
+FROM archlinux:latest
+
+RUN pacman -Syu --noconfirm \
+    base-devel \
+    cmake \
+    pkgconf \
+    networkmanager \
+    gtk3 \
+    gtk4 \
+    && pacman -Scc --noconfirm \
+    && rm -rf /var/cache/pacman/pkg/* /tmp/*
+
+WORKDIR /src
