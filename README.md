@@ -13,7 +13,7 @@
 
 - Интеграция Anet VPN с NetworkManager.
 - Управление через стандартный интерфейс NetworkManager.
-- Поддержка KDE Plasma / Qt6 UI.
+- Поддержка KDE Plasma/Qt6 и Gnome/GTK.
 - Настройка пути к `config.toml`.
 - DBus-dispatcher для обработки команд подключения и отключения.
   
@@ -153,8 +153,8 @@ cd nm-plugin-anet-gtk-ui
 ./build_arch.sh    # Arch Linux / Manjaro
 ./build_debian.sh  # Debian / Ubuntu
 ```
-
 Скрипт сам создаёт Podman-контейнер, запускает CMake и оставляет GTK-библиотеки в `nm-plugin-anet-gtk-ui/build/`.
+
 ---
 
 ## Сборка библиотек
