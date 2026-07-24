@@ -1,7 +1,7 @@
 FROM archlinux:latest
-RUN pacman -Syu --noconfirm \
-    base-devel cmake extra-cmake-modules clang \
-    plasma-workspace \
+RUN pacman -Syu --noconfirm --needed \
+    base-devel cmake extra-cmake-modules \
+    libplasma \
     kcoreaddons kconfig kwidgetsaddons kio ki18n kcrash kcmutils \
     networkmanager-qt modemmanager-qt \
     qt6-base qt6-svg qt6-declarative \
