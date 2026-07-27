@@ -189,8 +189,7 @@ if [ "$DE_NAME" = "kde-plasma" ]; then
   if [ -f "$UI_FILE" ]; then
     if [ -n "$UI_DIR" ]; then
       echo "Установка KDE Qt6 UI библиотеки"
-      cp "$UI_FILE" "$UI_DIR"
-      chmod 755 "$UI_DIR/plasmanetworkmanagement_anet-vpn_ui.so"
+      install -m 755 "$UI_FILE" "$UI_DIR/"
     else
       echo "Каталог KDE Qt6 UI не найден; установка UI пропущена" >&2
     fi
