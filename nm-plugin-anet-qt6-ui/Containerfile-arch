@@ -1,11 +1,11 @@
 FROM archlinux:latest
-RUN pacman -Syu --noconfirm \
-    base-devel cmake extra-cmake-modules clang \
-    plasma-workspace \
-    kcoreaddons kconfig kwidgetsaddons kio ki18n kcrash kcmutils \
+RUN pacman -Syu --noconfirm --needed \
+    base-devel cmake extra-cmake-modules \
+    kcolorscheme kcompletion kcoreaddons kconfig ki18n kio \
+    knotifications solid kwidgetsaddons \
     networkmanager-qt modemmanager-qt \
-    qt6-base qt6-svg qt6-declarative \
-    vulkan-headers qtkeychain-qt6 qcoro && \
+    qt6-base qtkeychain-qt6 qca-qt6 \
+    mobile-broadband-provider-info && \
     pacman -Scc --noconfirm && \
     rm -rf /var/cache/pacman/pkg/* /tmp/*
 WORKDIR /src

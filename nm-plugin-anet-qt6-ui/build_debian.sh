@@ -1,15 +1,42 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-cd plasma-nm
-git checkout v6.3.4
-cd ..
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+PLASMA_NM_DIR="$SCRIPT_DIR/plasma-nm"
+TMPDIR_VALUE=${TMPDIR:-$HOME/tmp-build}
 
-mkdir -p ~/tmp-build
-TMPDIR=~/tmp-build podman build -f Containerfile-debian -t kde-debian-dev .
+original_commit=$(git -C "$PLASMA_NM_DIR" rev-parse HEAD)
+original_branch=$(git -C "$PLASMA_NM_DIR" symbolic-ref --quiet --short HEAD || true)
 
-TMPDIR=~/tmp-build podman run --rm -v "$PWD:/src:Z" kde-debian-dev \
+restore_plasma_nm()
+{
+  if [ -n "$original_branch" ]; then
+    git -C "$PLASMA_NM_DIR" checkout "$original_branch"
+  else
+    git -C "$PLASMA_NM_DIR" checkout --detach "$original_commit"
+  fi
+}
+trap restore_plasma_nm EXIT
+
+git -C "$PLASMA_NM_DIR" checkout v6.3.4
+
+mkdir -p "$TMPDIR_VALUE"
+
+TMPDIR="$TMPDIR_VALUE" podman build \
+  -f "$SCRIPT_DIR/Containerfile-debian" \
+  -t kde-debian-dev \
+  "$SCRIPT_DIR"
+
+image_os_id="$(
+  podman run --rm --network=none kde-debian-dev \
+    sh -c '. /etc/os-release && printf "%s" "$ID"'
+)"
+if [ "$image_os_id" != "debian" ]; then
+  printf 'Unexpected builder OS: %s (expected debian)\n' "$image_os_id" >&2
+  exit 1
+fi
+
+TMPDIR="$TMPDIR_VALUE" podman run --rm \
+  -v "$SCRIPT_DIR:/src:Z" \
+  kde-debian-dev \
   sh -c "rm -rf build && cmake -B build && cmake --build build"
-
-cd plasma-nm
-git switch -
-cd ..
