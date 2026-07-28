@@ -73,6 +73,9 @@ jobs:
           PACKAGE=$(cat "$RUNNER_TEMP/package-name")
           STAGING=$(cat "$RUNNER_TEMP/staging-path")
           test -x "$STAGING/install.sh"
+          bash -n "$STAGING/install.sh"
+          grep -q 'cinnamon' "$STAGING/install.sh"
+          grep -q 'ldd -r' "$STAGING/install.sh"
           test -f "$STAGING/lib/libnm-vpn-plugin-anet.so"
           test -f "$STAGING/lib/libnm-vpn-plugin-anet-editor.so"
           test -f "$STAGING/lib/libnm-gtk4-vpn-plugin-anet-editor.so"
