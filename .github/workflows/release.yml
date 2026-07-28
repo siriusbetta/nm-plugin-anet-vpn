@@ -66,6 +66,16 @@ jobs:
           ! find "$STAGING/nm-plugin-anet-gtk-ui" "$STAGING/nm-plugin-anet-qt6-ui" -type f ! -path '*/build/*.so' ! -path '*/build/bin/*.so' | grep -q .
           tar -tzf "$RUNNER_TEMP/$PACKAGE.tar.gz"
 
+      - name: Upload runtime package artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nm-plugin-anet-vpn-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/nm-plugin-anet-vpn-*.tar.gz
+            ${{ runner.temp }}/nm-plugin-anet-vpn-*.zip
+          if-no-files-found: error
+
       - name: Publish GitHub Release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         env:
