@@ -25,11 +25,25 @@ jobs:
           docker run --rm -v "$PWD/nm-plugin-anet-gtk-ui:/src" anet-gtk-release \
             sh -c 'rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2'
 
-      - name: Build Qt6 runtime library
+      - name: Build Debian Qt6 runtime library
         run: |
-          docker build -f nm-plugin-anet-qt6-ui/Containerfile-debian -t anet-qt6-release nm-plugin-anet-qt6-ui
-          docker run --rm -v "$PWD/nm-plugin-anet-qt6-ui:/src" anet-qt6-release \
+          set -euo pipefail
+          docker build -f nm-plugin-anet-qt6-ui/Containerfile-debian -t anet-qt6-debian-release nm-plugin-anet-qt6-ui
+          docker run --rm -v "$PWD/nm-plugin-anet-qt6-ui:/src" anet-qt6-debian-release \
             sh -c 'rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2'
+          QT_LIBRARY=$(find nm-plugin-anet-qt6-ui/build -type f -name 'plasmanetworkmanagement_anet-vpn_ui.so' -print -quit)
+          test -n "$QT_LIBRARY"
+          cp "$QT_LIBRARY" "$RUNNER_TEMP/debian-plasmanetworkmanagement_anet-vpn_ui.so"
+
+      - name: Build Arch Qt6 runtime library
+        run: |
+          set -euo pipefail
+          docker build -f nm-plugin-anet-qt6-ui/Containerfile-arch -t anet-qt6-arch-release nm-plugin-anet-qt6-ui
+          docker run --rm -v "$PWD/nm-plugin-anet-qt6-ui:/src" anet-qt6-arch-release \
+            sh -c 'rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2'
+          QT_LIBRARY=$(find nm-plugin-anet-qt6-ui/build -type f -name 'plasmanetworkmanagement_anet-vpn_ui.so' -print -quit)
+          test -n "$QT_LIBRARY"
+          cp "$QT_LIBRARY" "$RUNNER_TEMP/arch-plasmanetworkmanagement_anet-vpn_ui.so"
 
       - name: Assemble runtime package
         run: |
@@ -37,18 +51,17 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           PACKAGE="nm-plugin-anet-vpn-${VERSION}"
           STAGING="$RUNNER_TEMP/$PACKAGE"
-          mkdir -p "$STAGING/config" "$STAGING/src" \
-            "$STAGING/nm-plugin-anet-gtk-ui/build" \
-            "$STAGING/nm-plugin-anet-qt6-ui/build/bin"
+          mkdir -p "$STAGING/config" "$STAGING/src" "$STAGING/lib"
           cp -a config/. "$STAGING/config/"
           cp -a src/. "$STAGING/src/"
-          cp install.sh uninstall.sh README.md LICENSE "$STAGING/"
-          cp nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet.so "$STAGING/nm-plugin-anet-gtk-ui/build/"
-          cp nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet-editor.so "$STAGING/nm-plugin-anet-gtk-ui/build/"
-          cp nm-plugin-anet-gtk-ui/build/libnm-gtk4-vpn-plugin-anet-editor.so "$STAGING/nm-plugin-anet-gtk-ui/build/"
-          QT_LIBRARY=$(find nm-plugin-anet-qt6-ui/build -type f -name 'libplasmanetworkmanagement_anet-vpn_ui.so' -print -quit)
-          test -n "$QT_LIBRARY"
-          cp "$QT_LIBRARY" "$STAGING/nm-plugin-anet-qt6-ui/build/bin/"
+          cp uninstall.sh README.md LICENSE "$STAGING/"
+          cp install.sh.in "$STAGING/install.sh"
+          chmod 755 "$STAGING/install.sh" "$STAGING/uninstall.sh"
+          cp nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet.so "$STAGING/lib/"
+          cp nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet-editor.so "$STAGING/lib/"
+          cp nm-plugin-anet-gtk-ui/build/libnm-gtk4-vpn-plugin-anet-editor.so "$STAGING/lib/"
+          cp "$RUNNER_TEMP/debian-plasmanetworkmanagement_anet-vpn_ui.so" "$STAGING/lib/"
+          cp "$RUNNER_TEMP/arch-plasmanetworkmanagement_anet-vpn_ui.so" "$STAGING/lib/"
           tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/$PACKAGE.tar.gz" "$PACKAGE"
           (cd "$RUNNER_TEMP" && zip -qr "$PACKAGE.zip" "$PACKAGE")
           printf '%s\n' "$STAGING" > "$RUNNER_TEMP/staging-path"
@@ -59,12 +72,27 @@ jobs:
           set -euo pipefail
           PACKAGE=$(cat "$RUNNER_TEMP/package-name")
           STAGING=$(cat "$RUNNER_TEMP/staging-path")
-          test -f "$STAGING/nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet.so"
-          test -f "$STAGING/nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet-editor.so"
-          test -f "$STAGING/nm-plugin-anet-gtk-ui/build/libnm-gtk4-vpn-plugin-anet-editor.so"
-          test -f "$STAGING/nm-plugin-anet-qt6-ui/build/bin/libplasmanetworkmanagement_anet-vpn_ui.so"
-          ! find "$STAGING/nm-plugin-anet-gtk-ui" "$STAGING/nm-plugin-anet-qt6-ui" -type f ! -path '*/build/*.so' ! -path '*/build/bin/*.so' | grep -q .
+          test -x "$STAGING/install.sh"
+          bash -n "$STAGING/install.sh"
+          grep -q 'cinnamon' "$STAGING/install.sh"
+          grep -q 'ldd -r' "$STAGING/install.sh"
+          test -f "$STAGING/lib/libnm-vpn-plugin-anet.so"
+          test -f "$STAGING/lib/libnm-vpn-plugin-anet-editor.so"
+          test -f "$STAGING/lib/libnm-gtk4-vpn-plugin-anet-editor.so"
+          test -f "$STAGING/lib/debian-plasmanetworkmanagement_anet-vpn_ui.so"
+          test -f "$STAGING/lib/arch-plasmanetworkmanagement_anet-vpn_ui.so"
+          test "$(find "$STAGING/lib" -maxdepth 1 -type f -name '*.so' | wc -l)" -eq 5
           tar -tzf "$RUNNER_TEMP/$PACKAGE.tar.gz"
+
+      - name: Upload runtime package artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nm-plugin-anet-vpn-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/nm-plugin-anet-vpn-*.tar.gz
+            ${{ runner.temp }}/nm-plugin-anet-vpn-*.zip
+          if-no-files-found: error
 
       - name: Publish GitHub Release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
