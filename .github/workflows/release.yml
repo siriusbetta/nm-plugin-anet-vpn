@@ -1,6 +1,7 @@
 name: Build runtime release
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
@@ -66,6 +67,7 @@ jobs:
           tar -tzf "$RUNNER_TEMP/$PACKAGE.tar.gz"
 
       - name: Publish GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
