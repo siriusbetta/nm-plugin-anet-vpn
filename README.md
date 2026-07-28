@@ -74,6 +74,18 @@ Release-установщик выбирает GTK-библиотеки для GN
 для KDE Plasma. Для Qt6 автоматически выбирается Debian/Ubuntu либо
 Arch/Manjaro вариант, после чего библиотека устанавливается под стандартным
 именем `plasmanetworkmanagement_anet-vpn_ui.so`.
+
+В Linux Mint GTK-режим поддерживает Cinnamon, MATE и XFCE. Перед изменением
+системных файлов установщик проверяет окружение, каталог NetworkManager и
+динамические зависимости GTK-библиотек через `ldd -r`. При запуске через
+`sudo` переменные desktop session должны быть сохранены, например:
+
+```bash
+sudo --preserve-env=XDG_CURRENT_DESKTOP,XDG_SESSION_DESKTOP,DESKTOP_SESSION ./install.sh
+```
+
+Установка перезапускает NetworkManager и может временно прервать активное
+сетевое соединение.
 Запустите установку:
 
 ```bash
