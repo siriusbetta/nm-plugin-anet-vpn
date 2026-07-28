@@ -1,0 +1,74 @@
+name: Build runtime release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build GTK runtime libraries
+        run: |
+          docker build -f nm-plugin-anet-gtk-ui/Containerfile-debian -t anet-gtk-release nm-plugin-anet-gtk-ui
+          docker run --rm -v "$PWD/nm-plugin-anet-gtk-ui:/src" anet-gtk-release \
+            sh -c 'rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2'
+
+      - name: Build Qt6 runtime library
+        run: |
+          docker build -f nm-plugin-anet-qt6-ui/Containerfile-debian -t anet-qt6-release nm-plugin-anet-qt6-ui
+          docker run --rm -v "$PWD/nm-plugin-anet-qt6-ui:/src" anet-qt6-release \
+            sh -c 'rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2'
+
+      - name: Assemble runtime package
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE="nm-plugin-anet-vpn-${VERSION}"
+          STAGING="$RUNNER_TEMP/$PACKAGE"
+          mkdir -p "$STAGING/config" "$STAGING/src" \
+            "$STAGING/nm-plugin-anet-gtk-ui/build" \
+            "$STAGING/nm-plugin-anet-qt6-ui/build/bin"
+          cp -a config/. "$STAGING/config/"
+          cp -a src/. "$STAGING/src/"
+          cp install.sh uninstall.sh README.md LICENSE "$STAGING/"
+          cp nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet.so "$STAGING/nm-plugin-anet-gtk-ui/build/"
+          cp nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet-editor.so "$STAGING/nm-plugin-anet-gtk-ui/build/"
+          cp nm-plugin-anet-gtk-ui/build/libnm-gtk4-vpn-plugin-anet-editor.so "$STAGING/nm-plugin-anet-gtk-ui/build/"
+          QT_LIBRARY=$(find nm-plugin-anet-qt6-ui/build -type f -name 'libplasmanetworkmanagement_anet-vpn_ui.so' -print -quit)
+          test -n "$QT_LIBRARY"
+          cp "$QT_LIBRARY" "$STAGING/nm-plugin-anet-qt6-ui/build/bin/"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/$PACKAGE.tar.gz" "$PACKAGE"
+          (cd "$RUNNER_TEMP" && zip -qr "$PACKAGE.zip" "$PACKAGE")
+          printf '%s\n' "$STAGING" > "$RUNNER_TEMP/staging-path"
+          printf '%s\n' "$PACKAGE" > "$RUNNER_TEMP/package-name"
+
+      - name: Verify runtime package contents
+        run: |
+          set -euo pipefail
+          PACKAGE=$(cat "$RUNNER_TEMP/package-name")
+          STAGING=$(cat "$RUNNER_TEMP/staging-path")
+          test -f "$STAGING/nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet.so"
+          test -f "$STAGING/nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet-editor.so"
+          test -f "$STAGING/nm-plugin-anet-gtk-ui/build/libnm-gtk4-vpn-plugin-anet-editor.so"
+          test -f "$STAGING/nm-plugin-anet-qt6-ui/build/bin/libplasmanetworkmanagement_anet-vpn_ui.so"
+          ! find "$STAGING/nm-plugin-anet-gtk-ui" "$STAGING/nm-plugin-anet-qt6-ui" -type f ! -path '*/build/*.so' ! -path '*/build/bin/*.so' | grep -q .
+          tar -tzf "$RUNNER_TEMP/$PACKAGE.tar.gz"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PACKAGE=$(cat "$RUNNER_TEMP/package-name")
+          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/$PACKAGE.tar.gz" "$RUNNER_TEMP/$PACKAGE.zip" \
+            --title "$GITHUB_REF_NAME" --generate-notes
