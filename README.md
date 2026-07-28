@@ -27,7 +27,8 @@
 ├── src/                    # DBus dispatcher
 ├── nm-plugin-anet-gtk-ui/  # GTK3/GTK4 UI-виджет
 ├── nm-plugin-anet-qt6-ui/  # Qt6 UI-виджет
-├── install.sh              # Установка
+├── install.sh              # Установка из дерева исходников
+├── install.sh.in           # Шаблон установщика release-пакета
 └── uninstall.sh            # Удаление
 ```
 ---
@@ -58,12 +59,21 @@ client-linux-amd64_xx.xx.xx.zip
 .
 ├── config/
 ├── src/
-├── nm-plugin-anet-gtk-ui/
-├── nm-plugin-anet-qt6-ui/
+├── lib/
+│   ├── libnm-vpn-plugin-anet.so
+│   ├── libnm-vpn-plugin-anet-editor.so
+│   ├── libnm-gtk4-vpn-plugin-anet-editor.so
+│   ├── debian-plasmanetworkmanagement_anet-vpn_ui.so
+│   └── arch-plasmanetworkmanagement_anet-vpn_ui.so
 ├── install.sh
 ├── uninstall.sh
 └── client-linux-amd64_xx.xx.xx.zip
 ```
+
+Release-установщик выбирает GTK-библиотеки для GNOME или Qt6-библиотеку
+для KDE Plasma. Для Qt6 автоматически выбирается Debian/Ubuntu либо
+Arch/Manjaro вариант, после чего библиотека устанавливается под стандартным
+именем `plasmanetworkmanagement_anet-vpn_ui.so`.
 Запустите установку:
 
 ```bash
