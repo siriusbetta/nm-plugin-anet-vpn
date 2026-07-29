@@ -26,11 +26,11 @@ done
 
 if [ -n "$DESKTOP_OVERRIDE" ]; then
   case "$DESKTOP_OVERRIDE" in
-    gnome|cinnamon|mate|xfce|kde-plasma)
+    gnome|unity|cinnamon|mate|xfce|kde-plasma)
       ;;
     *)
       echo "Неподдерживаемое значение --desktop: $DESKTOP_OVERRIDE" >&2
-      echo "Допустимые значения: gnome, cinnamon, mate, xfce, kde-plasma" >&2
+      echo "Допустимые значения: gnome, unity, cinnamon, mate, xfce, kde-plasma" >&2
       exit 1
       ;;
   esac
@@ -89,6 +89,10 @@ fi
 DE=$(printf '%s' "$DESKTOP_VALUE" | tr '[:upper:]' '[:lower:]')
 
 case "$DE" in
+  *unity*)
+    DE_NAME="unity"
+    UI_MODE="gtk"
+    ;;
   *gnome*)
     DE_NAME="gnome"
     UI_MODE="gtk"
@@ -185,12 +189,12 @@ fi
 if [ "$UI_MODE" = "qt6" ]; then
   case "$OS_NAME" in
     debian)
-      UI_DIR="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn"
       UI_FILE="$LIB_DIR/debian-plasmanetworkmanagement_anet-vpn_ui.so"
+      QT_UI_CANDIDATES="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn /usr/lib/qt6/plugins/plasma/network/vpn"
       ;;
     arch)
-      UI_DIR="/usr/lib/qt6/plugins/plasma/network/vpn"
       UI_FILE="$LIB_DIR/arch-plasmanetworkmanagement_anet-vpn_ui.so"
+      QT_UI_CANDIDATES="/usr/lib/qt6/plugins/plasma/network/vpn"
       ;;
     *)
       echo "Qt6 UI библиотека для дистрибутива $ID не подготовлена" >&2
@@ -198,13 +202,32 @@ if [ "$UI_MODE" = "qt6" ]; then
       ;;
   esac
 
-  if [ ! -d "$UI_DIR" ]; then
-    echo "Каталог KDE Qt6 UI не найден: $UI_DIR" >&2
+  UI_DIR=""
+  for CANDIDATE_DIR in $QT_UI_CANDIDATES; do
+    if [ -z "$UI_DIR" ] && [ -d "$CANDIDATE_DIR" ]; then
+      UI_DIR="$CANDIDATE_DIR"
+    fi
+  done
+
+  if [ -z "$UI_DIR" ]; then
+    echo "Каталог KDE Qt6 UI не найден" >&2
     exit 1
   fi
 
   if [ ! -f "$UI_FILE" ]; then
     echo "KDE Qt6 UI библиотека не найдена: $UI_FILE" >&2
+    exit 1
+  fi
+
+  if ! command -v ldd >/dev/null 2>&1; then
+    echo "Команда ldd не найдена; совместимость Qt6-библиотеки не может быть проверена" >&2
+    exit 1
+  fi
+
+  LDD_OUTPUT=$(ldd -r "$UI_FILE" 2>&1 || true)
+  if printf '%s\n' "$LDD_OUTPUT" | grep -Eq 'not found|undefined symbol'; then
+    echo "KDE Qt6 UI библиотека несовместима с текущей системой: $UI_FILE" >&2
+    printf '%s\n' "$LDD_OUTPUT" >&2
     exit 1
   fi
 fi

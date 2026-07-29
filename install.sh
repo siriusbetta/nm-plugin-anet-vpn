@@ -26,12 +26,12 @@ done
 
 if [ -n "$DESKTOP_OVERRIDE" ]; then
   case "$DESKTOP_OVERRIDE" in
-    gnome|cinnamon|mate|xfce|kde-plasma)
+    gnome|unity|cinnamon|mate|xfce|kde-plasma)
       DESKTOP_VALUE="$DESKTOP_OVERRIDE"
       ;;
     *)
       echo "Неподдерживаемое значение --desktop: $DESKTOP_OVERRIDE" >&2
-      echo "Допустимые значения: gnome, cinnamon, mate, xfce, kde-plasma" >&2
+      echo "Допустимые значения: gnome, unity, cinnamon, mate, xfce, kde-plasma" >&2
       exit 1
       ;;
   esac
@@ -42,6 +42,10 @@ fi
 DE=$(printf '%s' "$DESKTOP_VALUE" | tr '[:upper:]' '[:lower:]')
 
 case "$DE" in
+  *unity*)
+    DE_NAME="unity"
+    UI_MODE="gtk"
+    ;;
   *gnome*)
     DE_NAME="gnome"
     UI_MODE="gtk"
@@ -72,6 +76,116 @@ esac
 if [ "$EUID" -ne 0 ]; then
   echo "Запустите скрипт от имени root: sudo ./install.sh --desktop cinnamon"
   exit 1
+fi
+
+echo "Предварительная проверка окружения и файлов"
+
+if [ ! -f /etc/os-release ]; then
+  echo "Файл /etc/os-release не найден" >&2
+  exit 1
+fi
+
+. /etc/os-release
+echo "Дистрибутив: $NAME"
+
+case "$ID" in
+  debian|ubuntu|linuxmint)
+    OS_NAME="debian"
+    ;;
+  arch|manjaro)
+    OS_NAME="arch"
+    ;;
+  *)
+    OS_NAME="$ID"
+    ;;
+esac
+
+echo "Графическое окружение: $DE_NAME"
+
+if ! command -v ldd >/dev/null 2>&1; then
+  echo "Команда ldd не найдена; совместимость UI-библиотек не может быть проверена" >&2
+  exit 1
+fi
+
+if [ "$UI_MODE" = "gtk" ]; then
+  NM_LIBDIR=""
+  if command -v pkg-config >/dev/null 2>&1; then
+    NM_LIBDIR=$(pkg-config --variable=libdir libnm 2>/dev/null || true)
+  fi
+
+  NM_UI_DIR=""
+  for CANDIDATE_DIR in \
+    "${NM_LIBDIR:+$NM_LIBDIR/NetworkManager}" \
+    /usr/lib/x86_64-linux-gnu/NetworkManager \
+    /usr/lib/NetworkManager
+  do
+    if [ -z "$NM_UI_DIR" ] && [ -n "$CANDIDATE_DIR" ] && [ -d "$CANDIDATE_DIR" ]; then
+      NM_UI_DIR="$CANDIDATE_DIR"
+    fi
+  done
+
+  if [ -z "$NM_UI_DIR" ]; then
+    echo "Каталог GTK NetworkManager не найден" >&2
+    exit 1
+  fi
+
+  GTK_PLUGIN_FILE="./nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet.so"
+  GTK3_EDITOR_FILE="./nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet-editor.so"
+  GTK4_EDITOR_FILE="./nm-plugin-anet-gtk-ui/build/libnm-gtk4-vpn-plugin-anet-editor.so"
+
+  for GTK_LIBRARY in "$GTK_PLUGIN_FILE" "$GTK3_EDITOR_FILE" "$GTK4_EDITOR_FILE"; do
+    if [ ! -f "$GTK_LIBRARY" ]; then
+      echo "GTK-библиотека не найдена: $GTK_LIBRARY" >&2
+      exit 1
+    fi
+
+    LDD_OUTPUT=$(ldd -r "$GTK_LIBRARY" 2>&1 || true)
+    if printf '%s\n' "$LDD_OUTPUT" | grep -Eq 'not found|undefined symbol'; then
+      echo "GTK-библиотека несовместима с текущей системой: $GTK_LIBRARY" >&2
+      printf '%s\n' "$LDD_OUTPUT" >&2
+      exit 1
+    fi
+  done
+fi
+
+if [ "$UI_MODE" = "qt6" ]; then
+  case "$OS_NAME" in
+    debian)
+      QT_UI_CANDIDATES="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn /usr/lib/qt6/plugins/plasma/network/vpn"
+      ;;
+    arch)
+      QT_UI_CANDIDATES="/usr/lib/qt6/plugins/plasma/network/vpn"
+      ;;
+    *)
+      echo "Qt6 UI библиотека для дистрибутива $ID не подготовлена" >&2
+      exit 1
+      ;;
+  esac
+
+  UI_DIR=""
+  for CANDIDATE_DIR in $QT_UI_CANDIDATES; do
+    if [ -z "$UI_DIR" ] && [ -d "$CANDIDATE_DIR" ]; then
+      UI_DIR="$CANDIDATE_DIR"
+    fi
+  done
+
+  if [ -z "$UI_DIR" ]; then
+    echo "Каталог KDE Qt6 UI не найден" >&2
+    exit 1
+  fi
+
+  UI_FILE="./nm-plugin-anet-qt6-ui/build/bin/plasmanetworkmanagement_anet-vpn_ui.so"
+  if [ ! -f "$UI_FILE" ]; then
+    echo "KDE Qt6 UI библиотека не найдена: $UI_FILE" >&2
+    exit 1
+  fi
+
+  LDD_OUTPUT=$(ldd -r "$UI_FILE" 2>&1 || true)
+  if printf '%s\n' "$LDD_OUTPUT" | grep -Eq 'not found|undefined symbol'; then
+    echo "KDE Qt6 UI библиотека несовместима с текущей системой: $UI_FILE" >&2
+    printf '%s\n' "$LDD_OUTPUT" >&2
+    exit 1
+  fi
 fi
 
 echo "Начало установки nm-plugin-anet-vpn"
@@ -183,75 +297,16 @@ chown root:root /usr/local/libexec/nm-anet-auth-dialog
 echo "Перезагрузка конфигурации DBus"
 dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
 
-UI_DIR=""
-
-if [ -f /etc/os-release ]; then
-	source /etc/os-release
-	echo "Дистрибутив: $NAME"
-else
-	echo "Файл /ect/os-release не найден"
-fi
-
-OS_NAME="$ID"
-
-if [ "$ID" = "arch" ] || [ "$ID" = "manjaro" ]; then
-	OS_NAME="arch"
-fi
-
-echo "Графическое окружение: $DE_NAME"
-
-if [ "$OS_NAME" = "debian" ] && [ "$DE_NAME" = "kde-plasma" ]; then
-	if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then
-	  UI_DIR="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/"
-	fi
-fi
-
-if [ "$OS_NAME" = "arch" ] && [ "$DE_NAME" = "kde-plasma" ]; then
-	if [ -d "/usr/lib/qt6/plugins/plasma/network/vpn/" ]; then
-	  UI_DIR="/usr/lib/qt6/plugins/plasma/network/vpn/"
-	fi
-fi
-
 if [ "$UI_MODE" = "gtk" ]; then
-  NM_LIBDIR=$(pkg-config --variable=libdir libnm 2>/dev/null || true)
-  NM_UI_DIR=""
-  if [ -n "$NM_LIBDIR" ] && [ -d "$NM_LIBDIR/NetworkManager" ]; then
-    NM_UI_DIR="$NM_LIBDIR/NetworkManager"
-  fi
-
-  for CANDIDATE_DIR in \
-    /usr/lib/x86_64-linux-gnu/NetworkManager \
-    /usr/lib/NetworkManager
-  do
-    if [ -z "$NM_UI_DIR" ] && [ -d "$CANDIDATE_DIR" ]; then
-      NM_UI_DIR="$CANDIDATE_DIR"
-    fi
-  done
-
-  if [ -z "$NM_UI_DIR" ]; then
-    echo "Каталог GTK NetworkManager не найден" >&2
-    exit 1
-  fi
-
   echo "Установка GTK UI библиотек для $DE_NAME"
-  install -m 755 ./nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet.so "$NM_UI_DIR/"
-  install -m 755 ./nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet-editor.so "$NM_UI_DIR/"
-  install -m 755 ./nm-plugin-anet-gtk-ui/build/libnm-gtk4-vpn-plugin-anet-editor.so "$NM_UI_DIR/"
+  install -m 755 "$GTK_PLUGIN_FILE" "$NM_UI_DIR/"
+  install -m 755 "$GTK3_EDITOR_FILE" "$NM_UI_DIR/"
+  install -m 755 "$GTK4_EDITOR_FILE" "$NM_UI_DIR/"
 fi
 
-if [ "$DE_NAME" = "kde-plasma" ]; then
-  UI_FILE="./nm-plugin-anet-qt6-ui/build/bin/plasmanetworkmanagement_anet-vpn_ui.so"
-
-  if [ -f "$UI_FILE" ]; then
-    if [ -n "$UI_DIR" ]; then
-      echo "Установка KDE Qt6 UI библиотеки"
-      install -m 755 "$UI_FILE" "$UI_DIR/"
-    else
-      echo "Каталог KDE Qt6 UI не найден; установка UI пропущена" >&2
-    fi
-  else
-    echo "KDE Qt6 UI библиотека не найдена; установка UI пропущена" >&2
-  fi
+if [ "$UI_MODE" = "qt6" ]; then
+  echo "Установка KDE Qt6 UI библиотеки"
+  install -m 755 "$UI_FILE" "$UI_DIR/"
 fi
 
 echo "Перезапуск NetworkManager"

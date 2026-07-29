@@ -73,7 +73,7 @@ client-linux-amd64_xx.xx.xx.zip
 └── client-linux-amd64_xx.xx.xx.zip
 ```
 
-Release-установщик выбирает GTK-библиотеки для GNOME, Cinnamon, MATE или
+Release-установщик выбирает GTK-библиотеки для GNOME, Unity, Cinnamon, MATE или
 XFCE и Qt6-библиотеку для KDE Plasma. Для GTK и Qt6 автоматически выбирается
 Debian/Ubuntu/Linux Mint либо Arch/Manjaro вариант. Distro-префикс удаляется
 при установке, поэтому NetworkManager получает стандартные имена библиотек.
@@ -87,7 +87,7 @@ chmod +x install.sh
 sudo ./install.sh --desktop cinnamon
 ```
 
-Допустимые значения `--desktop`: `gnome`, `cinnamon`, `mate`, `xfce`,
+Допустимые значения `--desktop`: `gnome`, `unity`, `cinnamon`, `mate`, `xfce`,
 `kde-plasma`. Без параметра установщик пытается определить окружение
 автоматически по переменным desktop session.
 
@@ -219,7 +219,7 @@ build/libnm-gtk4-vpn-plugin-anet-editor.so
 sudo ./install.sh --desktop cinnamon
 ```
 
-Допустимые значения: `gnome`, `cinnamon`, `mate`, `xfce`, `kde-plasma`.
+Допустимые значения: `gnome`, `unity`, `cinnamon`, `mate`, `xfce`, `kde-plasma`.
 
 ### NetworkManager не видит подключение
 
@@ -290,6 +290,12 @@ ls -l /usr/lib/qt6/plugins/plasma/network/vpn/
 ```text
 /usr/lib/qt6/plugins/plasma/network/vpn/
 /usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/
+```
+
+Проверьте динамические зависимости Qt6-библиотеки:
+
+```bash
+ldd -r /путь/к/plasmanetworkmanagement_anet-vpn_ui.so
 ```
 
 ### После удаления осталось соединение `anet-vpn`
