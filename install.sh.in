@@ -1,8 +1,43 @@
 #!/bin/bash
 set -e
 
+DESKTOP_OVERRIDE=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --desktop)
+      if [ "$#" -lt 2 ]; then
+        echo "Для --desktop требуется значение" >&2
+        exit 1
+      fi
+      DESKTOP_OVERRIDE="$2"
+      shift 2
+      ;;
+    --desktop=*)
+      DESKTOP_OVERRIDE="${1#*=}"
+      shift
+      ;;
+    *)
+      echo "Неизвестный параметр: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [ -n "$DESKTOP_OVERRIDE" ]; then
+  case "$DESKTOP_OVERRIDE" in
+    gnome|cinnamon|mate|xfce|kde-plasma)
+      ;;
+    *)
+      echo "Неподдерживаемое значение --desktop: $DESKTOP_OVERRIDE" >&2
+      echo "Допустимые значения: gnome, cinnamon, mate, xfce, kde-plasma" >&2
+      exit 1
+      ;;
+  esac
+fi
+
 if [ "$EUID" -ne 0 ]; then
-  echo "Запустите скрипт от имени root: sudo ./install.sh"
+  echo "Запустите скрипт от имени root: sudo ./install.sh --desktop cinnamon"
   exit 1
 fi
 
@@ -45,7 +80,12 @@ case "$ID" in
     ;;
 esac
 
-DESKTOP_VALUE="${XDG_CURRENT_DESKTOP:-${XDG_SESSION_DESKTOP:-${DESKTOP_SESSION:-}}}"
+if [ -n "$DESKTOP_OVERRIDE" ]; then
+  DESKTOP_VALUE="$DESKTOP_OVERRIDE"
+else
+  DESKTOP_VALUE="${XDG_CURRENT_DESKTOP:-${XDG_SESSION_DESKTOP:-${DESKTOP_SESSION:-}}}"
+fi
+
 DE=$(printf '%s' "$DESKTOP_VALUE" | tr '[:upper:]' '[:lower:]')
 
 case "$DE" in
@@ -71,7 +111,7 @@ case "$DE" in
     ;;
   *)
     echo "Графическое окружение не определено или не поддерживается: $DESKTOP_VALUE" >&2
-    echo "Передайте XDG_CURRENT_DESKTOP, XDG_SESSION_DESKTOP или DESKTOP_SESSION через sudo." >&2
+    echo "Укажите его явно, например: --desktop cinnamon" >&2
     exit 1
     ;;
 esac
