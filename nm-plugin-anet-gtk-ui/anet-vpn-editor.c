@@ -22,7 +22,7 @@ struct _AnetVpnEditor {
 };
 
 static void anet_vpn_editor_interface_init(NMVpnEditorInterface *iface);
-static void on_file_selected(GtkNativeDialog *dialog, gint response_id, gpointer user_data);
+static void on_file_selected(GtkDialog *dialog, gint response_id, gpointer user_data);
 static void on_browse_clicked(GtkWidget *button, AnetVpnEditor *self);
 static void on_edit_clicked(GtkWidget *button, AnetVpnEditor *self);
 static void on_path_changed(GtkEditable *editable, AnetVpnEditor *self);
@@ -58,7 +58,7 @@ on_path_changed(GtkEditable *editable, AnetVpnEditor *self)
 }
 
 static void
-on_file_selected(GtkNativeDialog *dialog, gint response_id, gpointer user_data)
+on_file_selected(GtkDialog *dialog, gint response_id, gpointer user_data)
 {
     AnetVpnEditor *self = ANET_VPN_EDITOR(user_data);
     GFile *file = NULL;
@@ -75,7 +75,11 @@ on_file_selected(GtkNativeDialog *dialog, gint response_id, gpointer user_data)
     }
 
     g_clear_object(&file);
-    g_object_unref(dialog);
+#if GTK_CHECK_VERSION(4, 0, 0)
+    gtk_window_destroy(GTK_WINDOW(dialog));
+#else
+    gtk_widget_destroy(GTK_WIDGET(dialog));
+#endif
 }
 
 static void
@@ -83,7 +87,9 @@ on_browse_clicked(GtkWidget *button, AnetVpnEditor *self)
 {
     GtkWindow *parent = NULL;
     GtkWidget *root;
-    GtkFileChooserNative *dialog;
+    GtkWidget *dialog;
+
+    (void) button;
 
 #if GTK_CHECK_VERSION(4, 0, 0)
     root = GTK_WIDGET(gtk_widget_get_root(self->widget));
@@ -94,13 +100,19 @@ on_browse_clicked(GtkWidget *button, AnetVpnEditor *self)
     if (GTK_IS_WINDOW(root))
         parent = GTK_WINDOW(root);
 
-    dialog = gtk_file_chooser_native_new(
+    dialog = gtk_file_chooser_dialog_new(
         "Select Configuration File",
         parent,
         GTK_FILE_CHOOSER_ACTION_OPEN,
+        "_Cancel",
+        GTK_RESPONSE_CANCEL,
         "_Open",
-        "_Cancel"
+        GTK_RESPONSE_ACCEPT,
+        NULL
     );
+
+    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+    gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
 
     g_signal_connect_data(dialog,
                           "response",
@@ -109,7 +121,11 @@ on_browse_clicked(GtkWidget *button, AnetVpnEditor *self)
                           unref_user_data,
                           0);
 
-    gtk_native_dialog_show(GTK_NATIVE_DIALOG(dialog));
+#if GTK_CHECK_VERSION(4, 0, 0)
+    gtk_window_present(GTK_WINDOW(dialog));
+#else
+    gtk_widget_show(dialog);
+#endif
 }
 
 static void

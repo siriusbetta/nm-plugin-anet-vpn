@@ -60,9 +60,12 @@ client-linux-amd64_xx.xx.xx.zip
 ├── config/
 ├── src/
 ├── lib/
-│   ├── libnm-vpn-plugin-anet.so
-│   ├── libnm-vpn-plugin-anet-editor.so
-│   ├── libnm-gtk4-vpn-plugin-anet-editor.so
+│   ├── debian-libnm-vpn-plugin-anet.so
+│   ├── debian-libnm-vpn-plugin-anet-editor.so
+│   ├── debian-libnm-gtk4-vpn-plugin-anet-editor.so
+│   ├── arch-libnm-vpn-plugin-anet.so
+│   ├── arch-libnm-vpn-plugin-anet-editor.so
+│   ├── arch-libnm-gtk4-vpn-plugin-anet-editor.so
 │   ├── debian-plasmanetworkmanagement_anet-vpn_ui.so
 │   └── arch-plasmanetworkmanagement_anet-vpn_ui.so
 ├── install.sh
@@ -70,10 +73,10 @@ client-linux-amd64_xx.xx.xx.zip
 └── client-linux-amd64_xx.xx.xx.zip
 ```
 
-Release-установщик выбирает GTK-библиотеки для GNOME или Qt6-библиотеку
-для KDE Plasma. Для Qt6 автоматически выбирается Debian/Ubuntu либо
-Arch/Manjaro вариант, после чего библиотека устанавливается под стандартным
-именем `plasmanetworkmanagement_anet-vpn_ui.so`.
+Release-установщик выбирает GTK-библиотеки для GNOME, Cinnamon, MATE или
+XFCE и Qt6-библиотеку для KDE Plasma. Для GTK и Qt6 автоматически выбирается
+Debian/Ubuntu/Linux Mint либо Arch/Manjaro вариант. Distro-префикс удаляется
+при установке, поэтому NetworkManager получает стандартные имена библиотек.
 
 В Linux Mint GTK-режим поддерживает Cinnamon, MATE и XFCE. Перед изменением
 системных файлов установщик проверяет окружение, каталог NetworkManager и

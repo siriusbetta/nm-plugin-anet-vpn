@@ -79,6 +79,19 @@ esac
 echo "Графическое окружение: $DE_NAME"
 
 if [ "$UI_MODE" = "gtk" ]; then
+  case "$OS_NAME" in
+    debian)
+      GTK_PREFIX="debian"
+      ;;
+    arch)
+      GTK_PREFIX="arch"
+      ;;
+    *)
+      echo "GTK UI библиотеки для дистрибутива $ID не подготовлены" >&2
+      exit 1
+      ;;
+  esac
+
   if ! command -v ldd >/dev/null 2>&1; then
     echo "Команда ldd не найдена; совместимость GTK-библиотек не может быть проверена" >&2
     exit 1
@@ -106,10 +119,14 @@ if [ "$UI_MODE" = "gtk" ]; then
     exit 1
   fi
 
+  GTK_PLUGIN_FILE="$LIB_DIR/$GTK_PREFIX-libnm-vpn-plugin-anet.so"
+  GTK3_EDITOR_FILE="$LIB_DIR/$GTK_PREFIX-libnm-vpn-plugin-anet-editor.so"
+  GTK4_EDITOR_FILE="$LIB_DIR/$GTK_PREFIX-libnm-gtk4-vpn-plugin-anet-editor.so"
+
   for GTK_LIBRARY in \
-    "$LIB_DIR/libnm-vpn-plugin-anet.so" \
-    "$LIB_DIR/libnm-vpn-plugin-anet-editor.so" \
-    "$LIB_DIR/libnm-gtk4-vpn-plugin-anet-editor.so"
+    "$GTK_PLUGIN_FILE" \
+    "$GTK3_EDITOR_FILE" \
+    "$GTK4_EDITOR_FILE"
   do
     if [ ! -f "$GTK_LIBRARY" ]; then
       echo "GTK-библиотека не найдена: $GTK_LIBRARY" >&2
@@ -240,9 +257,9 @@ cp "$SCRIPT_DIR/config/anet-vpn.nmconnection" /etc/NetworkManager/system-connect
 chmod 600 /etc/NetworkManager/system-connections/anet-vpn.nmconnection
 chown root:root /etc/NetworkManager/system-connections/anet-vpn.nmconnection
 
-cp "$SCRIPT_DIR/config/anet.name" /usr/lib/NetworkManager/VPN/anet.name
-cp "$SCRIPT_DIR/config/org.freedesktop.NetworkManager.anet.service" /usr/share/dbus-1/system-services/org.freedesktop.NetworkManager.anet.service
-cp "$SCRIPT_DIR/config/org.freedesktop.NetworkManager.anet.conf" /etc/dbus-1/system.d/org.freedesktop.NetworkManager.anet.conf
+install -m 644 "$SCRIPT_DIR/config/anet.name" /usr/lib/NetworkManager/VPN/anet.name
+install -m 644 "$SCRIPT_DIR/config/org.freedesktop.NetworkManager.anet.service" /usr/share/dbus-1/system-services/org.freedesktop.NetworkManager.anet.service
+install -m 644 "$SCRIPT_DIR/config/org.freedesktop.NetworkManager.anet.conf" /etc/dbus-1/system.d/org.freedesktop.NetworkManager.anet.conf
 
 echo "Установка DBus dispatcher"
 cp "$SCRIPT_DIR/src/anet-dbus.py" /usr/local/libexec/anet-dbus.py
@@ -259,9 +276,9 @@ dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesk
 
 if [ "$UI_MODE" = "gtk" ]; then
   echo "Установка GTK UI библиотек для $DE_NAME"
-  install -m 755 "$LIB_DIR/libnm-vpn-plugin-anet.so" "$NM_UI_DIR/"
-  install -m 755 "$LIB_DIR/libnm-vpn-plugin-anet-editor.so" "$NM_UI_DIR/"
-  install -m 755 "$LIB_DIR/libnm-gtk4-vpn-plugin-anet-editor.so" "$NM_UI_DIR/"
+  install -m 755 "$GTK_PLUGIN_FILE" "$NM_UI_DIR/libnm-vpn-plugin-anet.so"
+  install -m 755 "$GTK3_EDITOR_FILE" "$NM_UI_DIR/libnm-vpn-plugin-anet-editor.so"
+  install -m 755 "$GTK4_EDITOR_FILE" "$NM_UI_DIR/libnm-gtk4-vpn-plugin-anet-editor.so"
 fi
 
 if [ "$UI_MODE" = "qt6" ]; then
