@@ -180,35 +180,63 @@ build/bin/plasmanetworkmanagement_anet-vpn_ui.so
 
 ### Сборка GTK
 
-Сборка GTK выполняется так же, как контейнерная сборка Qt6:
+Для сборки GTK требуется Podman. Скрипты сами собирают нужный container image,
+запускают CMake в контейнере и сохраняют результат в `build/`:
 
 ```bash
 cd nm-plugin-anet-gtk-ui
+./build_debian.sh  # Debian / Ubuntu / Linux Mint
+# или
 ./build_arch.sh    # Arch Linux / Manjaro
-./build_debian.sh  # Debian / Ubuntu
 ```
-Скрипт сам создаёт Podman-контейнер, запускает CMake и оставляет GTK-библиотеки в `nm-plugin-anet-gtk-ui/build/`.
+
+Результат сборки:
+
+```text
+build/libnm-vpn-plugin-anet.so
+build/libnm-vpn-plugin-anet-editor.so
+build/libnm-gtk4-vpn-plugin-anet-editor.so
+```
+
+Каждый скрипт перед сборкой удаляет текущий `build/`, поэтому после
+последовательного запуска двух скриптов в каталоге остаются библиотеки только
+для последнего выбранного дистрибутива.
 
 ---
 
-Установочный скрипт `install.sh` сам определяет операционную систему и графическое окружение и выбирает каталог установки для собранной библиотеки.
+Установочный скрипт `install.sh` определяет операционную систему, использует
+явный параметр `--desktop` или автоматическое определение окружения и выбирает
+подходящую UI-библиотеку и каталог установки.
 
 ---
 
 ## Возможные проблемы
 
-* NetworkManager не видит подключение
+### Графическое окружение не определено
 
-  Проверьте права:
+Укажите desktop environment явно:
+
+```bash
+sudo ./install.sh --desktop cinnamon
+```
+
+Допустимые значения: `gnome`, `cinnamon`, `mate`, `xfce`, `kde-plasma`.
+
+### NetworkManager не видит подключение
+
+Проверьте наличие и права connection profile:
+
 ```bash
 ls -l /etc/NetworkManager/system-connections/anet-vpn.nmconnection
 ```
 
-  Должно быть:
+Ожидаемые права и владелец:
 
+```text
 -rw------- root root
+```
 
-   Исправить:
+Исправление:
 
 ```bash
 sudo chmod 600 /etc/NetworkManager/system-connections/anet-vpn.nmconnection
@@ -216,17 +244,66 @@ sudo chown root:root /etc/NetworkManager/system-connections/anet-vpn.nmconnectio
 sudo nmcli connection reload
 ```
 
-* UI-виджет не отображается
+### GTK UI не отображается
 
-  Проверьте путь установки:
+Определите каталог плагинов NetworkManager и проверьте три библиотеки:
+
+```bash
+NM_LIBDIR=$(pkg-config --variable=libdir libnm)
+ls -l "$NM_LIBDIR/NetworkManager"/libnm-vpn-plugin-anet.so
+ls -l "$NM_LIBDIR/NetworkManager"/libnm-vpn-plugin-anet-editor.so
+ls -l "$NM_LIBDIR/NetworkManager"/libnm-gtk4-vpn-plugin-anet-editor.so
+```
+
+Если `pkg-config` не вернул путь, проверьте каталоги:
+
+```text
+/usr/lib/x86_64-linux-gnu/NetworkManager/
+/usr/lib/NetworkManager/
+```
+
+Проверьте динамические зависимости каждой найденной библиотеки:
+
+```bash
+ldd -r /путь/к/libnm-vpn-plugin-anet.so
+ldd -r /путь/к/libnm-vpn-plugin-anet-editor.so
+ldd -r /путь/к/libnm-gtk4-vpn-plugin-anet-editor.so
+```
+
+Также проверьте metadata-файл; он должен читаться обычным пользователем:
+
+```bash
+ls -l /usr/lib/NetworkManager/VPN/anet.name
+```
+
+Ожидаемый режим — `644` (`-rw-r--r--`).
+
+### Qt6 UI не отображается
+
+Проверьте путь установки:
 
 ```bash
 ls -l /usr/lib/qt6/plugins/plasma/network/vpn/
 ```
 
-  В некоторых дистрибутивах путь может отличаться:
+В Debian/Ubuntu и производных путь может отличаться:
 
-```bash
+```text
 /usr/lib/qt6/plugins/plasma/network/vpn/
 /usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/
+```
+
+### После удаления осталось соединение `anet-vpn`
+
+Проверьте сохранённые NetworkManager profiles:
+
+```bash
+nmcli -f NAME,UUID,TYPE connection show | grep -i anet
+```
+
+Если профиль остался, удалите его по UUID:
+
+```bash
+sudo nmcli connection delete uuid aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+sudo nmcli connection reload
 ```
