@@ -1,8 +1,76 @@
 #!/bin/bash
 set -e
 
+DESKTOP_OVERRIDE=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --desktop)
+      if [ "$#" -lt 2 ]; then
+        echo "Для --desktop требуется значение" >&2
+        exit 1
+      fi
+      DESKTOP_OVERRIDE="$2"
+      shift 2
+      ;;
+    --desktop=*)
+      DESKTOP_OVERRIDE="${1#*=}"
+      shift
+      ;;
+    *)
+      echo "Неизвестный параметр: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [ -n "$DESKTOP_OVERRIDE" ]; then
+  case "$DESKTOP_OVERRIDE" in
+    gnome|cinnamon|mate|xfce|kde-plasma)
+      DESKTOP_VALUE="$DESKTOP_OVERRIDE"
+      ;;
+    *)
+      echo "Неподдерживаемое значение --desktop: $DESKTOP_OVERRIDE" >&2
+      echo "Допустимые значения: gnome, cinnamon, mate, xfce, kde-plasma" >&2
+      exit 1
+      ;;
+  esac
+else
+  DESKTOP_VALUE="${XDG_CURRENT_DESKTOP:-${XDG_SESSION_DESKTOP:-${DESKTOP_SESSION:-}}}"
+fi
+
+DE=$(printf '%s' "$DESKTOP_VALUE" | tr '[:upper:]' '[:lower:]')
+
+case "$DE" in
+  *gnome*)
+    DE_NAME="gnome"
+    UI_MODE="gtk"
+    ;;
+  *cinnamon*)
+    DE_NAME="cinnamon"
+    UI_MODE="gtk"
+    ;;
+  *mate*)
+    DE_NAME="mate"
+    UI_MODE="gtk"
+    ;;
+  *xfce*)
+    DE_NAME="xfce"
+    UI_MODE="gtk"
+    ;;
+  *kde*|*plasma*)
+    DE_NAME="kde-plasma"
+    UI_MODE="qt6"
+    ;;
+  *)
+    echo "Графическое окружение не определено или не поддерживается: $DESKTOP_VALUE" >&2
+    echo "Укажите его явно, например: --desktop cinnamon" >&2
+    exit 1
+    ;;
+esac
+
 if [ "$EUID" -ne 0 ]; then
-  echo "Запустите скрипт от имени root: sudo ./install_anet.sh"
+  echo "Запустите скрипт от имени root: sudo ./install.sh --desktop cinnamon"
   exit 1
 fi
 
@@ -130,40 +198,7 @@ if [ "$ID" = "arch" ] || [ "$ID" = "manjaro" ]; then
 	OS_NAME="arch"
 fi
 
-DE_NAME=""
-UI_MODE=""
-DE=$(echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]')
-
-case "$DE" in
-    *gnome*)
-        echo "Запущен GNOME"
-	DE_NAME="gnome"
-	UI_MODE="gtk"
-        ;;
-    *kde*|*plasma*)
-        echo "Запущен KDE Plasma"
-	DE_NAME="kde-plasma"
-	UI_MODE="qt6"
-        ;;
-    *xfce*)
-        echo "Запущен XFCE"
-	DE_NAME="xfce"
-	UI_MODE="gtk"
-        ;;
-    *mate*)
-        echo "Запущен MATE"
-	DE_NAME="mate"
-	UI_MODE="gtk"
-        ;;
-    *cinnamon*)
-        echo "Запущен Cinnamon"
-	DE_NAME="cinnamon"
-	UI_MODE="gtk"
-        ;;
-    *)
-        echo "Окружение не определено или используется консоль: $XDG_CURRENT_DESKTOP"
-        ;;
-esac
+echo "Графическое окружение: $DE_NAME"
 
 if [ "$OS_NAME" = "debian" ] && [ "$DE_NAME" = "kde-plasma" ]; then
 	if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then

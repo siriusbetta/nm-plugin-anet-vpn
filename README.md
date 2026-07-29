@@ -78,23 +78,18 @@ XFCE и Qt6-библиотеку для KDE Plasma. Для GTK и Qt6 автом
 Debian/Ubuntu/Linux Mint либо Arch/Manjaro вариант. Distro-префикс удаляется
 при установке, поэтому NetworkManager получает стандартные имена библиотек.
 
-В Linux Mint GTK-режим поддерживает Cinnamon, MATE и XFCE. Перед изменением
-системных файлов установщик проверяет окружение, каталог NetworkManager и
-динамические зависимости GTK-библиотек через `ldd -r`. При запуске через
-`sudo` переменные desktop session должны быть сохранены, например:
-
-```bash
-sudo --preserve-env=XDG_CURRENT_DESKTOP,XDG_SESSION_DESKTOP,DESKTOP_SESSION ./install.sh
-```
-
 Установка перезапускает NetworkManager и может временно прервать активное
 сетевое соединение.
 Запустите установку:
 
 ```bash
 chmod +x install.sh
-sudo ./install.sh
+sudo ./install.sh --desktop cinnamon
 ```
+
+Допустимые значения `--desktop`: `gnome`, `cinnamon`, `mate`, `xfce`,
+`kde-plasma`. Без параметра установщик пытается определить окружение
+автоматически по переменным desktop session.
 
 Подключение:
 
