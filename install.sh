@@ -1,8 +1,76 @@
 #!/bin/bash
 set -e
 
+DESKTOP_OVERRIDE=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --desktop)
+      if [ "$#" -lt 2 ]; then
+        echo "Для --desktop требуется значение" >&2
+        exit 1
+      fi
+      DESKTOP_OVERRIDE="$2"
+      shift 2
+      ;;
+    --desktop=*)
+      DESKTOP_OVERRIDE="${1#*=}"
+      shift
+      ;;
+    *)
+      echo "Неизвестный параметр: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [ -n "$DESKTOP_OVERRIDE" ]; then
+  case "$DESKTOP_OVERRIDE" in
+    gnome|cinnamon|mate|xfce|kde-plasma)
+      DESKTOP_VALUE="$DESKTOP_OVERRIDE"
+      ;;
+    *)
+      echo "Неподдерживаемое значение --desktop: $DESKTOP_OVERRIDE" >&2
+      echo "Допустимые значения: gnome, cinnamon, mate, xfce, kde-plasma" >&2
+      exit 1
+      ;;
+  esac
+else
+  DESKTOP_VALUE="${XDG_CURRENT_DESKTOP:-${XDG_SESSION_DESKTOP:-${DESKTOP_SESSION:-}}}"
+fi
+
+DE=$(printf '%s' "$DESKTOP_VALUE" | tr '[:upper:]' '[:lower:]')
+
+case "$DE" in
+  *gnome*)
+    DE_NAME="gnome"
+    UI_MODE="gtk"
+    ;;
+  *cinnamon*)
+    DE_NAME="cinnamon"
+    UI_MODE="gtk"
+    ;;
+  *mate*)
+    DE_NAME="mate"
+    UI_MODE="gtk"
+    ;;
+  *xfce*)
+    DE_NAME="xfce"
+    UI_MODE="gtk"
+    ;;
+  *kde*|*plasma*)
+    DE_NAME="kde-plasma"
+    UI_MODE="qt6"
+    ;;
+  *)
+    echo "Графическое окружение не определено или не поддерживается: $DESKTOP_VALUE" >&2
+    echo "Укажите его явно, например: --desktop cinnamon" >&2
+    exit 1
+    ;;
+esac
+
 if [ "$EUID" -ne 0 ]; then
-  echo "Запустите скрипт от имени root: sudo ./install_anet.sh"
+  echo "Запустите скрипт от имени root: sudo ./install.sh --desktop cinnamon"
   exit 1
 fi
 
@@ -91,14 +159,14 @@ cp ./anet-vpn.nmconnection /etc/NetworkManager/system-connections/anet-vpn.nmcon
 chmod 600 /etc/NetworkManager/system-connections/anet-vpn.nmconnection
 chown root:root /etc/NetworkManager/system-connections/anet-vpn.nmconnection
 
-cp ./config/anet.name /usr/lib/NetworkManager/VPN/anet.name 2>/dev/null || \
-cp ./anet.name /usr/lib/NetworkManager/VPN/anet.name
+install -m 644 ./config/anet.name /usr/lib/NetworkManager/VPN/anet.name 2>/dev/null || \
+install -m 644 ./anet.name /usr/lib/NetworkManager/VPN/anet.name
 
-cp ./config/org.freedesktop.NetworkManager.anet.service /usr/share/dbus-1/system-services/org.freedesktop.NetworkManager.anet.service 2>/dev/null || \
-cp ./org.freedesktop.NetworkManager.anet.service /usr/share/dbus-1/system-services/org.freedesktop.NetworkManager.anet.service
+install -m 644 ./config/org.freedesktop.NetworkManager.anet.service /usr/share/dbus-1/system-services/org.freedesktop.NetworkManager.anet.service 2>/dev/null || \
+install -m 644 ./org.freedesktop.NetworkManager.anet.service /usr/share/dbus-1/system-services/org.freedesktop.NetworkManager.anet.service
 
-cp ./config/org.freedesktop.NetworkManager.anet.conf /etc/dbus-1/system.d/org.freedesktop.NetworkManager.anet.conf 2>/dev/null || \
-cp ./org.freedesktop.NetworkManager.anet.conf /etc/dbus-1/system.d/org.freedesktop.NetworkManager.anet.conf
+install -m 644 ./config/org.freedesktop.NetworkManager.anet.conf /etc/dbus-1/system.d/org.freedesktop.NetworkManager.anet.conf 2>/dev/null || \
+install -m 644 ./org.freedesktop.NetworkManager.anet.conf /etc/dbus-1/system.d/org.freedesktop.NetworkManager.anet.conf
 
 echo "Установка DBus dispatcher"
 cp ./src/anet-dbus.py /usr/local/libexec/anet-dbus.py 2>/dev/null || \
@@ -130,34 +198,7 @@ if [ "$ID" = "arch" ] || [ "$ID" = "manjaro" ]; then
 	OS_NAME="arch"
 fi
 
-DE_NAME=""
-DE=$(echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]')
-
-case "$DE" in
-    *gnome*)
-        echo "Запущен GNOME"
-	DE_NAME="gnome"
-        ;;
-    *kde*|*plasma*)
-        echo "Запущен KDE Plasma"
-	DE_NAME="kde-plasma"
-        ;;
-    *xfce*)
-        echo "Запущен XFCE"
-	DE_NAME="xfce"
-        ;;
-    *mate*)
-        echo "Запущен MATE"
-	DE_NAME="mate"
-        ;;
-    *cinnamon*)
-        echo "Запущен Cinnamon"
-	DE_NAME="cinnamon"
-        ;;
-    *)
-        echo "Окружение не определено или используется консоль: $XDG_CURRENT_DESKTOP"
-        ;;
-esac
+echo "Графическое окружение: $DE_NAME"
 
 if [ "$OS_NAME" = "debian" ] && [ "$DE_NAME" = "kde-plasma" ]; then
 	if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then
@@ -171,13 +212,28 @@ if [ "$OS_NAME" = "arch" ] && [ "$DE_NAME" = "kde-plasma" ]; then
 	fi
 fi
 
-if [ "$DE_NAME" = "gnome" ]; then
+if [ "$UI_MODE" = "gtk" ]; then
   NM_LIBDIR=$(pkg-config --variable=libdir libnm 2>/dev/null || true)
-  NM_UI_DIR="${NM_LIBDIR:-/usr/lib}/NetworkManager"
-  if [ ! -d "$NM_UI_DIR" ]; then
-    echo "Каталог GTK NetworkManager не найден: $NM_UI_DIR" >&2
+  NM_UI_DIR=""
+  if [ -n "$NM_LIBDIR" ] && [ -d "$NM_LIBDIR/NetworkManager" ]; then
+    NM_UI_DIR="$NM_LIBDIR/NetworkManager"
+  fi
+
+  for CANDIDATE_DIR in \
+    /usr/lib/x86_64-linux-gnu/NetworkManager \
+    /usr/lib/NetworkManager
+  do
+    if [ -z "$NM_UI_DIR" ] && [ -d "$CANDIDATE_DIR" ]; then
+      NM_UI_DIR="$CANDIDATE_DIR"
+    fi
+  done
+
+  if [ -z "$NM_UI_DIR" ]; then
+    echo "Каталог GTK NetworkManager не найден" >&2
     exit 1
   fi
+
+  echo "Установка GTK UI библиотек для $DE_NAME"
   install -m 755 ./nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet.so "$NM_UI_DIR/"
   install -m 755 ./nm-plugin-anet-gtk-ui/build/libnm-vpn-plugin-anet-editor.so "$NM_UI_DIR/"
   install -m 755 ./nm-plugin-anet-gtk-ui/build/libnm-gtk4-vpn-plugin-anet-editor.so "$NM_UI_DIR/"
