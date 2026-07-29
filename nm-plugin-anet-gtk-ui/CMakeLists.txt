@@ -10,7 +10,8 @@ pkg_check_modules(GMODULE REQUIRED IMPORTED_TARGET gmodule-2.0)
 pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
 pkg_check_modules(GTK4 REQUIRED IMPORTED_TARGET gtk4)
 
-set(NM_PLUGIN_DIR "/usr/lib/NetworkManager" CACHE PATH
+pkg_get_variable(LIBM_LIBDIR libnm libdir)
+set(NM_PLUGIN_DIR "${LIBM_LIBDIR}/NetworkManager" CACHE PATH
     "NetworkManager plugin directory used by the runtime selector")
 
 add_library(nm-vpn-plugin-anet MODULE
