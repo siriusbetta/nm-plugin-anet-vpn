@@ -10,6 +10,7 @@ echo "Начало удаления nm-plugin-anet-vpn"
 
 echo "Остановка соединения и процессов"
 nmcli connection down anet-vpn 2>/dev/null || true
+nmcli connection delete uuid aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee 2>/dev/null || true
 pkill -f anet-dbus.py 2>/dev/null || true
 pkill -f anet-client 2>/dev/null || true
 rm -f /tmp/anet-vpn.log
