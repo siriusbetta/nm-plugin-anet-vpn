@@ -157,26 +157,25 @@ git clone --recurse-submodules https://github.com/siriusbetta/nm-plugin-anet-vpn
 
 ### Сборка Qt6
 
-```bash
-mkdir -p ~/tmp-build
-cd nm-plugin-anet-qt6
-```
-
-Сборка контейнера:
+Для сборки Qt6 требуется Podman. Скрипты сами выбирают совместимую ревизию
+`plasma-nm`, собирают container image, запускают CMake и после завершения
+восстанавливают исходное состояние submodule:
 
 ```bash
-TMPDIR=~/tmp-build podman build -f Container-arch -t kde-arch-dev .
+cd nm-plugin-anet-qt6-ui
+./build_debian.sh  # Debian / Ubuntu и производные
+# или
+./build_arch.sh    # Arch Linux / Manjaro
 ```
 
-Сборка UI:
+Результат сборки:
 
-```bash
-TMPDIR=~/tmp-build podman run --rm -v "$PWD:/src:Z" kde-arch-dev \
-  sh -c "rm -rf build && cmake -B build && cmake --build build"
-```
-Готовый файл:
-
+```text
 build/bin/plasmanetworkmanagement_anet-vpn_ui.so
+```
+
+Оба скрипта используют общий `build/`, поэтому следующий запуск заменяет
+результат предыдущей сборки.
 
 ### Сборка GTK
 
