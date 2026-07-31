@@ -91,6 +91,15 @@ sudo ./install.sh --desktop cinnamon
 `kde-plasma`. Без параметра установщик пытается определить окружение
 автоматически по переменным desktop session.
 
+### Проверено
+
+- Linux Mint (Cinnamon, MATE, Xfce)
+- Ubuntu (GNOME)
+- Xubuntu
+- Kubuntu
+- Arch Linux (KDE, GNOME)
+- Manjaro (KDE)
+
 Подключение:
 
 ```bash
