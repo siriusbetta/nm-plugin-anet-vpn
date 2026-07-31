@@ -73,7 +73,7 @@ client-linux-amd64_xx.xx.xx.zip
 └── client-linux-amd64_xx.xx.xx.zip
 ```
 
-Release-установщик выбирает GTK-библиотеки для GNOME, Cinnamon, MATE или
+Release-установщик выбирает GTK-библиотеки для GNOME, Unity, Cinnamon, MATE или
 XFCE и Qt6-библиотеку для KDE Plasma. Для GTK и Qt6 автоматически выбирается
 Debian/Ubuntu/Linux Mint либо Arch/Manjaro вариант. Distro-префикс удаляется
 при установке, поэтому NetworkManager получает стандартные имена библиотек.
@@ -87,9 +87,18 @@ chmod +x install.sh
 sudo ./install.sh --desktop cinnamon
 ```
 
-Допустимые значения `--desktop`: `gnome`, `cinnamon`, `mate`, `xfce`,
+Допустимые значения `--desktop`: `gnome`, `unity`, `cinnamon`, `mate`, `xfce`,
 `kde-plasma`. Без параметра установщик пытается определить окружение
 автоматически по переменным desktop session.
+
+### Проверено
+
+- Linux Mint (Cinnamon, MATE, Xfce)
+- Ubuntu (GNOME)
+- Xubuntu
+- Kubuntu
+- Arch Linux (KDE, GNOME)
+- Manjaro (KDE)
 
 Подключение:
 
@@ -219,7 +228,7 @@ build/libnm-gtk4-vpn-plugin-anet-editor.so
 sudo ./install.sh --desktop cinnamon
 ```
 
-Допустимые значения: `gnome`, `cinnamon`, `mate`, `xfce`, `kde-plasma`.
+Допустимые значения: `gnome`, `unity`, `cinnamon`, `mate`, `xfce`, `kde-plasma`.
 
 ### NetworkManager не видит подключение
 
@@ -277,6 +286,26 @@ ls -l /usr/lib/NetworkManager/VPN/anet.name
 
 Ожидаемый режим — `644` (`-rw-r--r--`).
 
+### В Xfce недоступен пункт `VPN Settings` после установки
+
+Xfce `nm-applet` может сохранить список VPN editor plugins, загруженный до
+установки Anet. Installer пытается перезапустить `nm-applet` только для
+пользователя, который запустил его через `sudo`.
+
+Если автоматическое обновление не сработало, перезапустите applet вручную из
+пользовательской сессии:
+
+```bash
+pkill nm-applet
+nohup nm-applet >/tmp/nm-applet-anet.log 2>&1 &
+```
+
+Профиль также можно открыть напрямую:
+
+```bash
+nm-connection-editor
+```
+
 ### Qt6 UI не отображается
 
 Проверьте путь установки:
@@ -290,6 +319,12 @@ ls -l /usr/lib/qt6/plugins/plasma/network/vpn/
 ```text
 /usr/lib/qt6/plugins/plasma/network/vpn/
 /usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/
+```
+
+Проверьте динамические зависимости Qt6-библиотеки:
+
+```bash
+ldd -r /путь/к/plasmanetworkmanagement_anet-vpn_ui.so
 ```
 
 ### После удаления осталось соединение `anet-vpn`

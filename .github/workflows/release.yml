@@ -68,10 +68,14 @@ jobs:
       - name: Assemble runtime package
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          RAW_VERSION="${GITHUB_REF_NAME#v}"
+          VERSION=$(printf '%s' "$RAW_VERSION" | sed -E 's/[^A-Za-z0-9._-]+/-/g; s/^-+|-+$//g')
+          test -n "$VERSION"
           PACKAGE="nm-plugin-anet-vpn-${VERSION}"
-          STAGING="$RUNNER_TEMP/$PACKAGE"
-          mkdir -p "$STAGING/config" "$STAGING/src" "$STAGING/lib"
+          STAGING_ROOT="$RUNNER_TEMP/staging"
+          STAGING="$STAGING_ROOT/$PACKAGE"
+          ARTIFACT_DIR="$RUNNER_TEMP/release-artifacts"
+          mkdir -p "$STAGING/config" "$STAGING/src" "$STAGING/lib" "$ARTIFACT_DIR"
           cp -a config/. "$STAGING/config/"
           cp -a src/. "$STAGING/src/"
           cp uninstall.sh README.md LICENSE "$STAGING/"
@@ -85,16 +89,18 @@ jobs:
           cp "$RUNNER_TEMP/arch-libnm-gtk4-vpn-plugin-anet-editor.so" "$STAGING/lib/"
           cp "$RUNNER_TEMP/debian-plasmanetworkmanagement_anet-vpn_ui.so" "$STAGING/lib/"
           cp "$RUNNER_TEMP/arch-plasmanetworkmanagement_anet-vpn_ui.so" "$STAGING/lib/"
-          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/$PACKAGE.tar.gz" "$PACKAGE"
-          (cd "$RUNNER_TEMP" && zip -qr "$PACKAGE.zip" "$PACKAGE")
+          tar -C "$STAGING_ROOT" -czf "$ARTIFACT_DIR/$PACKAGE.tar.gz" "$PACKAGE"
+          (cd "$STAGING_ROOT" && zip -qr "$ARTIFACT_DIR/$PACKAGE.zip" "$PACKAGE")
           printf '%s\n' "$STAGING" > "$RUNNER_TEMP/staging-path"
           printf '%s\n' "$PACKAGE" > "$RUNNER_TEMP/package-name"
+          printf '%s\n' "$ARTIFACT_DIR" > "$RUNNER_TEMP/artifact-dir"
 
       - name: Verify runtime package contents
         run: |
           set -euo pipefail
           PACKAGE=$(cat "$RUNNER_TEMP/package-name")
           STAGING=$(cat "$RUNNER_TEMP/staging-path")
+          ARTIFACT_DIR=$(cat "$RUNNER_TEMP/artifact-dir")
           test -x "$STAGING/install.sh"
           bash -n "$STAGING/install.sh"
           grep -q 'cinnamon' "$STAGING/install.sh"
@@ -108,16 +114,16 @@ jobs:
           test -f "$STAGING/lib/debian-plasmanetworkmanagement_anet-vpn_ui.so"
           test -f "$STAGING/lib/arch-plasmanetworkmanagement_anet-vpn_ui.so"
           test "$(find "$STAGING/lib" -maxdepth 1 -type f -name '*.so' | wc -l)" -eq 8
-          tar -tzf "$RUNNER_TEMP/$PACKAGE.tar.gz"
+          test -f "$ARTIFACT_DIR/$PACKAGE.tar.gz"
+          test -f "$ARTIFACT_DIR/$PACKAGE.zip"
+          tar -tzf "$ARTIFACT_DIR/$PACKAGE.tar.gz"
 
       - name: Upload runtime package artifacts
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: nm-plugin-anet-vpn-${{ github.run_number }}
-          path: |
-            ${{ runner.temp }}/nm-plugin-anet-vpn-*.tar.gz
-            ${{ runner.temp }}/nm-plugin-anet-vpn-*.zip
+          path: ${{ runner.temp }}/release-artifacts/
           if-no-files-found: error
 
       - name: Publish GitHub Release
@@ -126,5 +132,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           PACKAGE=$(cat "$RUNNER_TEMP/package-name")
-          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/$PACKAGE.tar.gz" "$RUNNER_TEMP/$PACKAGE.zip" \
+          ARTIFACT_DIR=$(cat "$RUNNER_TEMP/artifact-dir")
+          gh release create "$GITHUB_REF_NAME" "$ARTIFACT_DIR/$PACKAGE.tar.gz" "$ARTIFACT_DIR/$PACKAGE.zip" \
             --title "$GITHUB_REF_NAME" --generate-notes

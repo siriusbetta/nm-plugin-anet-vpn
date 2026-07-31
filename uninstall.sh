@@ -29,7 +29,6 @@ rm -f /usr/local/bin/anet-client
 rm -f /usr/local/etc/client.toml
 rm -f /usr/local/etc/client.toml.bak
 
-UI_DIR=""
 if [ -f /etc/os-release ]; then
 	source /etc/os-release
 	echo "Дистрибутив: $NAME"
@@ -37,16 +36,27 @@ else
 	echo "Файл /ect/os-release не найден"
 fi
 
-OS_NAME="$ID"
-
-if [ "$ID" = "arch" ] || [ "$ID" = "manjaro" ]; then
-	OS_NAME="arch"
-fi
+case "$ID" in
+  debian|ubuntu|linuxmint)
+    QT_UI_CANDIDATES="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn /usr/lib/qt6/plugins/plasma/network/vpn"
+    ;;
+  arch|manjaro)
+    QT_UI_CANDIDATES="/usr/lib/qt6/plugins/plasma/network/vpn"
+    ;;
+  *)
+    QT_UI_CANDIDATES=""
+    ;;
+esac
 
 DE_NAME=""
-DE=$(echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]')
+DESKTOP_VALUE="${XDG_CURRENT_DESKTOP:-${XDG_SESSION_DESKTOP:-${DESKTOP_SESSION:-}}}"
+DE=$(printf '%s' "$DESKTOP_VALUE" | tr '[:upper:]' '[:lower:]')
 
 case "$DE" in
+    *unity*)
+        echo "Запущен Unity"
+	DE_NAME="unity"
+        ;;
     *gnome*)
         echo "Запущен GNOME"
 	DE_NAME="gnome"
@@ -68,29 +78,31 @@ case "$DE" in
 	DE_NAME="cinnamon"
         ;;
     *)
-        echo "Окружение не определено или используется консоль: $XDG_CURRENT_DESKTOP"
+        echo "Окружение не определено или используется консоль: $DESKTOP_VALUE"
         ;;
 esac
 
-if [ "$OS_NAME" = "debian" ] && [ "$DE_NAME" = "kde-plasma" ]; then
-	if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/" ]; then
-	  UI_DIR="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/"
-	fi
-fi
-
-if [ "$OS_NAME" = "arch" ] && [ "$DE_NAME" = "kde-plasma" ]; then
-	if [ -d "/usr/lib/qt6/plugins/plasma/network/vpn/" ]; then
-	  UI_DIR="/usr/lib/qt6/plugins/plasma/network/vpn/"
-	fi
-fi
 echo "Удаление UI библиотеки"
-rm -f "$UI_DIR/plasmanetworkmanagement_anet-vpn_ui.so"
+for UI_DIR in $QT_UI_CANDIDATES; do
+  rm -f "$UI_DIR/plasmanetworkmanagement_anet-vpn_ui.so"
+done
 
-NM_LIBDIR=$(pkg-config --variable=libdir libnm 2>/dev/null || true)
-NM_UI_DIR="${NM_LIBDIR:-/usr/lib}/NetworkManager"
-rm -f "$NM_UI_DIR/libnm-vpn-plugin-anet.so"
-rm -f "$NM_UI_DIR/libnm-vpn-plugin-anet-editor.so"
-rm -f "$NM_UI_DIR/libnm-gtk4-vpn-plugin-anet-editor.so"
+NM_LIBDIR=""
+if command -v pkg-config >/dev/null 2>&1; then
+  NM_LIBDIR=$(pkg-config --variable=libdir libnm 2>/dev/null || true)
+fi
+
+for NM_UI_DIR in \
+  "${NM_LIBDIR:+$NM_LIBDIR/NetworkManager}" \
+  /usr/lib/x86_64-linux-gnu/NetworkManager \
+  /usr/lib/NetworkManager
+do
+  if [ -n "$NM_UI_DIR" ]; then
+    rm -f "$NM_UI_DIR/libnm-vpn-plugin-anet.so"
+    rm -f "$NM_UI_DIR/libnm-vpn-plugin-anet-editor.so"
+    rm -f "$NM_UI_DIR/libnm-gtk4-vpn-plugin-anet-editor.so"
+  fi
+done
 
 echo "Перезагрузка конфигурации DBus"
 dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
