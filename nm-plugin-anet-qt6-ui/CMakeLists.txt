@@ -91,6 +91,11 @@ feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
 add_library(plasmanetworkmanagement_anet-vpn_ui MODULE)
 
+set_target_properties(plasmanetworkmanagement_anet-vpn_ui PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "plasmanetworkmanagement_anet-vpn_ui"
+)
+
 target_sources(plasmanetworkmanagement_anet-vpn_ui PRIVATE
 				anet-vpn.cpp
 				anet-vpn_widget.cpp
@@ -102,4 +107,3 @@ target_link_libraries(plasmanetworkmanagement_anet-vpn_ui
     KF6::I18n
     KF6::WidgetsAddons
 )
-
