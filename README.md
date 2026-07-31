@@ -277,6 +277,26 @@ ls -l /usr/lib/NetworkManager/VPN/anet.name
 
 Ожидаемый режим — `644` (`-rw-r--r--`).
 
+### В Xfce недоступен пункт `VPN Settings` после установки
+
+Xfce `nm-applet` может сохранить список VPN editor plugins, загруженный до
+установки Anet. Installer пытается перезапустить `nm-applet` только для
+пользователя, который запустил его через `sudo`.
+
+Если автоматическое обновление не сработало, перезапустите applet вручную из
+пользовательской сессии:
+
+```bash
+pkill nm-applet
+nohup nm-applet >/tmp/nm-applet-anet.log 2>&1 &
+```
+
+Профиль также можно открыть напрямую:
+
+```bash
+nm-connection-editor
+```
+
 ### Qt6 UI не отображается
 
 Проверьте путь установки:

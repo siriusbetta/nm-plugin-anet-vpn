@@ -78,6 +78,53 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+refresh_xfce_nm_applet() {
+  if [ "$DE_NAME" != "xfce" ]; then
+    return 0
+  fi
+
+  APPLET_USER="${SUDO_USER:-}"
+  if [ -z "$APPLET_USER" ] || [ "$APPLET_USER" = "root" ]; then
+    echo "Не удалось определить пользователя Xfce; перезапустите nm-applet вручную: pkill nm-applet; nohup nm-applet >/tmp/nm-applet-anet.log 2>&1 &"
+    return 0
+  fi
+
+  APPLET_UID=$(id -u "$APPLET_USER" 2>/dev/null || true)
+  if [ -z "$APPLET_UID" ] || [ ! -S "/run/user/$APPLET_UID/bus" ]; then
+    echo "Не удалось определить session bus пользователя $APPLET_USER; перезапустите nm-applet вручную после установки"
+    return 0
+  fi
+
+  for REQUIRED_COMMAND in pgrep pkill runuser nm-applet; do
+    if ! command -v "$REQUIRED_COMMAND" >/dev/null 2>&1; then
+      echo "Команда $REQUIRED_COMMAND не найдена; перезапустите nm-applet вручную после установки"
+      return 0
+    fi
+  done
+
+  if ! pgrep -u "$APPLET_UID" -x nm-applet >/dev/null 2>&1; then
+    echo "nm-applet пользователя $APPLET_USER не запущен; автоматическое обновление Xfce пропущено"
+    return 0
+  fi
+
+  if ! pkill -u "$APPLET_UID" -x nm-applet; then
+    echo "Не удалось остановить nm-applet; перезапустите его вручную после установки"
+    return 0
+  fi
+
+  APPLET_DISPLAY="${DISPLAY:-:0}"
+  APPLET_LOG="/tmp/nm-applet-anet-$APPLET_UID.log"
+  runuser -u "$APPLET_USER" -- env \
+    DISPLAY="$APPLET_DISPLAY" \
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$APPLET_UID/bus" \
+    nohup nm-applet >"$APPLET_LOG" 2>&1 &
+
+  sleep 1
+  if ! pgrep -u "$APPLET_UID" -x nm-applet >/dev/null 2>&1; then
+    echo "nm-applet не запустился автоматически; журнал: $APPLET_LOG"
+  fi
+}
+
 echo "Предварительная проверка окружения и файлов"
 
 if [ ! -f /etc/os-release ]; then
@@ -309,9 +356,15 @@ if [ "$UI_MODE" = "qt6" ]; then
   install -m 755 "$UI_FILE" "$UI_DIR/"
 fi
 
-echo "Перезапуск NetworkManager"
+if [ "$DE_NAME" = "xfce" ]; then
+  echo "Перезапуск NetworkManager и nm-applet"
+else
+  echo "Перезапуск NetworkManager"
+fi
 systemctl restart NetworkManager
 nmcli connection reload
+
+refresh_xfce_nm_applet
 
 echo "Установка завершена"
 echo "Для подключения выполните: nmcli connection up anet-vpn"
