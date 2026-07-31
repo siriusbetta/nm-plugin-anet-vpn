@@ -50,9 +50,9 @@ jobs:
           set -euo pipefail
           docker build -f nm-plugin-anet-qt6-ui/Containerfile-debian -t anet-qt6-debian-release nm-plugin-anet-qt6-ui
           docker run --rm -v "$PWD/nm-plugin-anet-qt6-ui:/src" anet-qt6-debian-release \
-            sh -c 'rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2'
-          QT_LIBRARY=$(find nm-plugin-anet-qt6-ui/build -type f -name 'plasmanetworkmanagement_anet-vpn_ui.so' -print -quit)
-          test -n "$QT_LIBRARY"
+            sh -c 'rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target plasmanetworkmanagement_anet-vpn_ui -j2'
+          QT_LIBRARY=nm-plugin-anet-qt6-ui/build/bin/plasmanetworkmanagement_anet-vpn_ui.so
+          test -f "$QT_LIBRARY"
           cp "$QT_LIBRARY" "$RUNNER_TEMP/debian-plasmanetworkmanagement_anet-vpn_ui.so"
 
       - name: Build Arch Qt6 runtime library
@@ -60,9 +60,9 @@ jobs:
           set -euo pipefail
           docker build -f nm-plugin-anet-qt6-ui/Containerfile-arch -t anet-qt6-arch-release nm-plugin-anet-qt6-ui
           docker run --rm -v "$PWD/nm-plugin-anet-qt6-ui:/src" anet-qt6-arch-release \
-            sh -c 'rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2'
-          QT_LIBRARY=$(find nm-plugin-anet-qt6-ui/build -type f -name 'plasmanetworkmanagement_anet-vpn_ui.so' -print -quit)
-          test -n "$QT_LIBRARY"
+            sh -c 'rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target plasmanetworkmanagement_anet-vpn_ui -j2'
+          QT_LIBRARY=nm-plugin-anet-qt6-ui/build/bin/plasmanetworkmanagement_anet-vpn_ui.so
+          test -f "$QT_LIBRARY"
           cp "$QT_LIBRARY" "$RUNNER_TEMP/arch-plasmanetworkmanagement_anet-vpn_ui.so"
 
       - name: Assemble runtime package
