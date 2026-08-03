@@ -25,6 +25,7 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(new QLabel("Please select a configuration file:", this));
     mainLayout->addLayout(pathLayout);
+    mainLayout->addStretch();
     mainLayout->setContentsMargins(12, 12, 12, 12);
     mainLayout->setSpacing(10);
 
