@@ -12,11 +12,10 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
 
     m_lineEditPath = new QLineEdit(this);
     m_lineEditPath->setReadOnly(true);
-    m_lineEditPath->setPlaceholderText("Путь к файлу не выбран");
     m_lineEditPath->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-    m_buttonBrowse = new QPushButton("Выбрать файл", this);
-    m_buttonEdit = new QPushButton("Редактировать", this);
+    m_buttonBrowse = new QPushButton("Browse...", this);
+    m_buttonEdit = new QPushButton("Edit...", this);
 
     auto* pathLayout = new QHBoxLayout;
     pathLayout->addWidget(m_lineEditPath);
@@ -24,7 +23,9 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
     pathLayout->addWidget(m_buttonEdit);
 
     auto* mainLayout = new QVBoxLayout(this);
+    mainLayout->addWidget(new QLabel("Please select a configuration file:", this));
     mainLayout->addLayout(pathLayout);
+    mainLayout->addStretch();
     mainLayout->setContentsMargins(12, 12, 12, 12);
     mainLayout->setSpacing(10);
 
@@ -32,7 +33,7 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
     connect(m_buttonEdit, &QPushButton::clicked, this, &AnetVpnWidget::onEditClicked);
 
     setLayout(mainLayout);
-    setWindowTitle("Выбор файла");
+    setWindowTitle("Select Configuration File");
     if (setting && !setting->isNull()) {
 	    loadConfig(setting);
     }
@@ -66,7 +67,7 @@ QVariantMap AnetVpnWidget::setting() const
 }
 
 void AnetVpnWidget::onBrowseClicked() {
-	QString filePath = QFileDialog::getOpenFileName(this, "Выберите файл");
+	QString filePath = QFileDialog::getOpenFileName(this, "Select Configuration File");
 	if (!filePath.isEmpty()) {
 	    m_lineEditPath->setText(filePath);
 	    settingChanged();
