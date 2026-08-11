@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal NetworkManager VPN auth-dialog for the HelloWorld plugin."""
+"""Minimal NetworkManager VPN auth-dialog for the AnetVPN plugin."""
 
 import sys
 
