@@ -48,7 +48,7 @@ sudo pacman -S python-dbus python-gobject unzip
 ```
 ---
 ## Установка
-Перед установкой положите архив с клиентом Anet рядом со скриптом install.sh.
+Необходимо взять релизный архив, распаковать и в корень распакованной папки положить архив с клиентом Anet рядом со скриптом install.sh.
 
 Ожидаемое имя архива:
 
@@ -149,7 +149,7 @@ tail -f /tmp/anet-vpn.log
 ---
 ## Сборка UI-виджета
 
-Необходимо получить скачать исходники 
+Необходимо скачать исходники 
 
 ```bash
 git clone --recurse-submodules https://github.com/siriusbetta/nm-plugin-anet-vpn.git 
@@ -182,9 +182,6 @@ cd nm-plugin-anet-qt6-ui
 ```text
 build/bin/plasmanetworkmanagement_anet-vpn_ui.so
 ```
-
-Оба скрипта используют общий `build/`, поэтому следующий запуск заменяет
-результат предыдущей сборки.
 
 ### Сборка GTK
 
