@@ -10,7 +10,7 @@
         "Description": "Plugin for tunnel connections via anet",
         "EnabledByDefault": false,
         "Icon": "",
-        "License": "GPL",
+        "License": "GPL-3.0-or-later",
         "Name": "anet-VPN (anet-vpn)",
         "Version": "0.1",
         "Website": ""
