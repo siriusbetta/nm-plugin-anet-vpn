@@ -40,6 +40,57 @@ NM_VPN_PLUGIN_FAILURE_CONNECT_FAILED = 1
 NM_VPN_PLUGIN_FAILURE_BAD_IP_CONFIG = 2
 
 
+def extract_ipv4_after_marker(line, marker):
+    match = re.search(
+        rf"{re.escape(marker)}\s*(\d{{1,3}}(?:\.\d{{1,3}}){{3}})",
+        line,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+
+    candidate = match.group(1)
+    try:
+        socket.inet_pton(socket.AF_INET, candidate)
+    except OSError:
+        return None
+
+    return candidate
+
+
+def extract_external_gateway(line):
+    """Return an IPv4 endpoint from old and failover-aware client logs."""
+    if "Connecting to " not in line:
+        return None
+
+    # New format:
+    # Connecting to server 'Primary' (quic://192.0.2.10:8443)
+    match = re.search(
+        r"(?:quic|ssh|vnc|ws|wss)://(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?",
+        line,
+        re.IGNORECASE,
+    )
+    if match:
+        candidate = match.group(1)
+    else:
+        # Old format: [QUIC] Connecting to 192.0.2.10:8443...
+        candidate = extract_ipv4_after_marker(line, "Connecting to ")
+
+    if not candidate:
+        return None
+
+    try:
+        socket.inet_pton(socket.AF_INET, candidate)
+    except OSError:
+        return None
+
+    return candidate
+
+
+def is_tunnel_up_line(line):
+    return "VPN Tunnel UP" in line or "VPN interface configured. Tunnel UP" in line
+
+
 def log(msg):
     line = f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n"
     with open(LOG_FILE, "a", encoding="utf-8") as f:
@@ -293,7 +344,7 @@ class AnetVpnPlugin(dbus.service.Object):
 
                 self.parse_anet_line(line)
 
-                if "VPN Tunnel UP" in line:
+                if is_tunnel_up_line(line):
                     GLib.idle_add(self.finish_connect_from_main_loop)
 
             rc = self.proc.wait()
@@ -313,26 +364,28 @@ class AnetVpnPlugin(dbus.service.Object):
     def parse_anet_line(self, line):
         # Пример:
         # [Core] Authenticated. VPN IP: 10.0.0.204
-        if "VPN IP:" in line:
+        vpn_ip = extract_ipv4_after_marker(line, "VPN IP:")
+        if not vpn_ip:
+            vpn_ip = extract_ipv4_after_marker(line, "assigned IP ")
+
+        if vpn_ip:
             try:
-                value = line.split("VPN IP:", 1)[1].strip()
-                value = value.split()[0].strip()
-                self.vpn_ip = value
+                self.vpn_ip = vpn_ip
                 log(f"parsed vpn_ip={self.vpn_ip}")
             except Exception:
-                log("failed to parse VPN IP line")
+                log("failed to parse VPN IP/assigned IP line")
                 log(traceback.format_exc())
 
         # Пример:
         # [CORE] Connecting to 192.168.24.14:8443
         # [QUIC] Connecting to 192.168.24.14:8443...
-        if "Connecting to " in line and not self.external_gateway:
+        external_gateway = extract_external_gateway(line)
+        if external_gateway:
             try:
-                value = line.split("Connecting to ", 1)[1].strip()
-                value = value.split()[0].strip()
-                value = value.rstrip(".")
-                host = value.split(":", 1)[0].strip()
-                self.external_gateway = host
+                # A valid endpoint from the current attempt takes precedence
+                # over the static nmconnection fallback. This is required when
+                # failover nodes use different addresses.
+                self.external_gateway = external_gateway
                 log(f"parsed external_gateway={self.external_gateway}")
             except Exception:
                 log("failed to parse Connecting to line")
@@ -344,7 +397,8 @@ class AnetVpnPlugin(dbus.service.Object):
             return
 
         try:
-            left = line.split("[", 1)[1]
+            tun_details = line.split("Created TUN with:", 1)[1]
+            left = tun_details.split("[", 1)[1]
             inside = left.split("]", 1)[0]
 
             values = {}
