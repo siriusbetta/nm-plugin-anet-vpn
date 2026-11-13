@@ -5,7 +5,6 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <NetworkManagerQt/Manager>
-#include <NetworkManagerQt/Notifier>
 #include <NetworkManagerQt/VpnConnection>
 #include <NetworkManagerQt/Connection>
 
