@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ANet VPN Tray
+Comment=Управление ANet VPN через NetworkManager
+Exec=/usr/local/libexec/anet-tray.py
+Icon=network-vpn
+Terminal=false
+Categories=Network;
+X-GNOME-Autostart-enabled=true
+X-KDE-autostart-after=panel

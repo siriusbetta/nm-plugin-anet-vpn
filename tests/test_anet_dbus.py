@@ -3,6 +3,7 @@ import sys
 import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 def load_dispatcher_module():
@@ -78,6 +79,7 @@ def parser():
     plugin.vpn_gw = None
     plugin.ifname = "anet-client"
     plugin.mtu = None
+    plugin.active_node = None
     return plugin
 
 
@@ -139,6 +141,54 @@ class AnetLogParserTests(unittest.TestCase):
             "(ssh://192.0.2.20:8222)"
         )
         self.assertEqual(plugin.external_gateway, "192.0.2.20")
+
+    def test_active_node_is_taken_from_successful_tunnel_not_failed_attempt(self):
+        plugin = parser()
+        plugin.parse_anet_line(
+            "[Core] Connecting to server 'Dead Node [QUIC]' "
+            "(quic://10.255.255.1:8443)"
+        )
+        plugin.parse_anet_line(
+            "[Core] Connection failed or timed out for server 'Dead Node [QUIC]'"
+        )
+        self.assertIsNone(plugin.active_node)
+
+        plugin.parse_anet_line(
+            "[Core] VPN interface configured. Tunnel UP. "
+            "Active node: GM Primary [SSH]"
+        )
+        self.assertEqual(plugin.active_node, "GM Primary [SSH]")
+
+    def test_old_tunnel_line_without_node_keeps_generic_banner(self):
+        plugin = parser()
+        plugin.parse_anet_line("[Core] VPN Tunnel UP")
+        self.assertIsNone(plugin.active_node)
+
+    def test_successful_connection_emits_active_node_in_login_banner(self):
+        plugin = parser()
+        plugin.started = False
+        plugin.external_gateway = "192.0.2.20"
+        plugin.vpn_ip = "10.0.0.3"
+        plugin.vpn_gw = "10.0.0.1"
+        plugin.parse_anet_line(
+            "[Core] VPN interface configured. Tunnel UP. "
+            "Active node: GM Primary [SSH]"
+        )
+
+        banners = []
+        plugin.Config = lambda config: None
+        plugin.Ip4Config = lambda config: None
+        plugin.LoginBanner = banners.append
+        plugin.StateChanged = lambda state: None
+        plugin.Failure = lambda reason: None
+        plugin.stop_anet = lambda: None
+
+        with mock.patch.object(anet_dbus.dbus, "Dictionary", lambda value, signature: value), \
+             mock.patch.object(anet_dbus.dbus, "Array", lambda value, signature: value):
+            plugin.finish_connect_from_main_loop()
+
+        self.assertTrue(plugin.started)
+        self.assertEqual(banners, ["anet VPN connected — GM Primary [SSH]"])
 
     def test_old_connecting_line_is_supported(self):
         plugin = parser()

@@ -114,6 +114,8 @@ jobs:
           test -f "$STAGING/lib/debian-plasmanetworkmanagement_anet-vpn_ui.so"
           test -f "$STAGING/lib/arch-plasmanetworkmanagement_anet-vpn_ui.so"
           test "$(find "$STAGING/lib" -maxdepth 1 -type f -name '*.so' | wc -l)" -eq 8
+          test -f "$STAGING/src/tray/anet-tray.py"
+          test -f "$STAGING/src/tray/anet-tray.desktop"
           test -f "$ARTIFACT_DIR/$PACKAGE.tar.gz"
           test -f "$ARTIFACT_DIR/$PACKAGE.zip"
           tar -tzf "$ARTIFACT_DIR/$PACKAGE.tar.gz"

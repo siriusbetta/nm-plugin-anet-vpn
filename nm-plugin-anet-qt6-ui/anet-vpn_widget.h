@@ -5,6 +5,7 @@
 #include <QWidget>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFileDialog>
@@ -27,10 +28,12 @@ private slots:
     void onBrowseClicked(); 
         
     void onEditClicked(); 
+    void refreshConnectedNode();
 
 private:
     NetworkManager::VpnSetting::Ptr m_setting;
     QLineEdit* m_lineEditPath;
     QPushButton* m_buttonBrowse;
     QPushButton* m_buttonEdit;
+    QLabel* m_connectedNodeLabel;
 };

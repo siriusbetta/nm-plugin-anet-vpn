@@ -4,6 +4,9 @@
 
 #include <QVBoxLayout>
 #include <QLabel>
+#include <NetworkManagerQt/Manager>
+#include <NetworkManagerQt/VpnConnection>
+#include <NetworkManagerQt/Connection>
 
 AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWidget *parent)
     : SettingWidget(setting, parent)
@@ -26,6 +29,9 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(new QLabel("Please select a configuration file:", this));
     mainLayout->addLayout(pathLayout);
+    m_connectedNodeLabel = new QLabel(this);
+    m_connectedNodeLabel->setTextFormat(Qt::PlainText);
+    mainLayout->addWidget(m_connectedNodeLabel);
     mainLayout->addStretch();
     mainLayout->setContentsMargins(12, 12, 12, 12);
     mainLayout->setSpacing(10);
@@ -38,6 +44,14 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
     if (setting && !setting->isNull()) {
 	    loadConfig(setting);
     }
+
+    connect(NetworkManager::notifier(), &NetworkManager::Notifier::activeConnectionsChanged,
+            this, &AnetVpnWidget::refreshConnectedNode);
+    connect(NetworkManager::notifier(), &NetworkManager::Notifier::serviceAppeared,
+            this, &AnetVpnWidget::refreshConnectedNode);
+    connect(NetworkManager::notifier(), &NetworkManager::Notifier::serviceDisappeared,
+            this, &AnetVpnWidget::refreshConnectedNode);
+    refreshConnectedNode();
 }
 
 void AnetVpnWidget::loadConfig(const NetworkManager::Setting::Ptr &setting)
@@ -47,6 +61,7 @@ void AnetVpnWidget::loadConfig(const NetworkManager::Setting::Ptr &setting)
 
     QString savedPath = data.value(QStringLiteral("config"));
     m_lineEditPath->setText(savedPath);
+    refreshConnectedNode();
     m_lineEditPath->setToolTip(savedPath);
 }
 
@@ -72,6 +87,7 @@ void AnetVpnWidget::onBrowseClicked() {
 	QString filePath = QFileDialog::getOpenFileName(this, "Select Configuration File");
 	if (!filePath.isEmpty()) {
 	    m_lineEditPath->setText(filePath);
+	    refreshConnectedNode();
 	    m_lineEditPath->setToolTip(filePath);
 	    settingChanged();
 	}
@@ -80,4 +96,51 @@ void AnetVpnWidget::onBrowseClicked() {
 void AnetVpnWidget::onEditClicked() {
 	QString filePath = m_lineEditPath->text();
 	QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+}
+
+void AnetVpnWidget::refreshConnectedNode()
+{
+    const QString configPath = m_lineEditPath->text();
+    m_connectedNodeLabel->setText(tr("Connected node: Not connected"));
+    if (configPath.isEmpty()) {
+        return;
+    }
+
+    for (const auto &active : NetworkManager::activeConnections()) {
+        const auto vpn = active.dynamicCast<NetworkManager::VpnConnection>();
+        if (!vpn) {
+            continue;
+        }
+
+        connect(vpn.data(), &NetworkManager::VpnConnection::bannerChanged,
+                this, &AnetVpnWidget::refreshConnectedNode, Qt::UniqueConnection);
+        connect(vpn.data(),
+                static_cast<void (NetworkManager::VpnConnection::*)(NetworkManager::VpnConnection::State,
+                                                                     NetworkManager::VpnConnection::StateChangeReason)>(
+                    &NetworkManager::VpnConnection::stateChanged),
+                this, &AnetVpnWidget::refreshConnectedNode, Qt::UniqueConnection);
+
+        const auto connection = vpn->connection();
+        if (!connection || !connection->settings()) {
+            continue;
+        }
+        const auto vpnSetting = connection->settings()->setting(NetworkManager::Setting::Vpn)
+                                    .dynamicCast<NetworkManager::VpnSetting>();
+        if (!vpnSetting || vpnSetting->serviceType() != QLatin1String("org.freedesktop.NetworkManager.anet")
+            || vpnSetting->data().value(QStringLiteral("config")) != configPath) {
+            continue;
+        }
+
+        if (vpn->state() != NetworkManager::VpnConnection::Activated) {
+            continue;
+        }
+        const QString prefix = QStringLiteral("anet VPN connected — ");
+        const QString banner = vpn->banner();
+        if (banner.startsWith(prefix) && banner.size() > prefix.size()) {
+            m_connectedNodeLabel->setText(tr("Connected node: %1").arg(banner.mid(prefix.size())));
+        } else {
+            m_connectedNodeLabel->setText(tr("Connected node: Unavailable"));
+        }
+        return;
+    }
 }

@@ -106,4 +106,5 @@ target_link_libraries(plasmanetworkmanagement_anet-vpn_ui
     KF6::CoreAddons
     KF6::I18n
     KF6::WidgetsAddons
+    KF6::NetworkManagerQt
 )

@@ -1,10 +1,23 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
 DESKTOP_OVERRIDE=""
+INSTALL_TRAY=0
+TRAY_ONLY=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --tray-only)
+      TRAY_ONLY=1
+      INSTALL_TRAY=1
+      shift
+      ;;
+    --tray)
+      INSTALL_TRAY=1
+      shift
+      ;;
     --desktop)
       if [ "$#" -lt 2 ]; then
         echo "Для --desktop требуется значение" >&2
@@ -23,6 +36,106 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+install_tray_deps() {
+  if command -v pacman >/dev/null 2>&1; then
+    pacman -Sy --noconfirm --needed python-pyqt6 || echo "Не удалось установить python-pyqt6: трей не будет запускаться" >&2
+  elif command -v apt-get >/dev/null 2>&1; then
+    apt-get update -qq
+    apt-get install -y python3-pyqt6 || echo "Не удалось установить python3-pyqt6: трей не будет запускаться" >&2
+  else
+    echo "Менеджер пакетов не распознан; установите PyQt6 вручную" >&2
+  fi
+}
+
+install_tray() {
+  TRAY_SRC_DIR="$SCRIPT_DIR/src/tray"
+  TRAY_SCRIPT="$TRAY_SRC_DIR/anet-tray.py"
+  TRAY_DESKTOP="$TRAY_SRC_DIR/anet-tray.desktop"
+  TRAY_TARGET="/usr/local/libexec/anet-tray.py"
+  TRAY_DESKTOP_TARGET="/usr/share/applications/anet-tray.desktop"
+
+  if [ ! -f "$TRAY_SCRIPT" ] || [ ! -f "$TRAY_DESKTOP" ]; then
+    echo "Трей не установлен: не найдены $TRAY_SCRIPT или $TRAY_DESKTOP" >&2
+    return 0
+  fi
+
+  echo "Установка трея ANet VPN"
+  install -m 755 "$TRAY_SCRIPT" "$TRAY_TARGET"
+  install -m 644 "$TRAY_DESKTOP" "$TRAY_DESKTOP_TARGET"
+
+  TRAY_USER="${SUDO_USER:-}"
+  if [ -z "$TRAY_USER" ] || [ "$TRAY_USER" = "root" ]; then
+    echo "Автозапуск трея не настроен: не удалось определить пользователя. Запустите через sudo из сессии пользователя." >&2
+    return 0
+  fi
+
+  TRAY_HOME=$(getent passwd "$TRAY_USER" | cut -d: -f6)
+  if [ -z "$TRAY_HOME" ] || [ ! -d "$TRAY_HOME" ]; then
+    echo "Автозапуск трея не настроен: не найден домашний каталог $TRAY_USER" >&2
+    return 0
+  fi
+
+  if ! command -v runuser >/dev/null 2>&1 || ! runuser -u "$TRAY_USER" -- python3 -c 'import PyQt6' >/dev/null 2>&1; then
+    echo "Трей установлен, но запускаться не будет: нужен PyQt6." >&2
+    echo "  Arch:   sudo pacman -S --needed python-pyqt6" >&2
+    echo "  Debian: sudo apt install python3-pyqt6" >&2
+    echo "Автозапуск не создан." >&2
+    return 0
+  fi
+
+  TRAY_GROUP=$(id -gn "$TRAY_USER")
+  mkdir -p "$TRAY_HOME/.config/autostart"
+  install -m 644 -o "$TRAY_USER" -g "$TRAY_GROUP" "$TRAY_DESKTOP" "$TRAY_HOME/.config/autostart/anet-tray.desktop"
+  echo "Автозапуск трея включён для пользователя $TRAY_USER"
+
+  TRAY_UID=$(id -u "$TRAY_USER")
+  TRAY_BUS="/run/user/$TRAY_UID/bus"
+  if [ ! -S "$TRAY_BUS" ]; then
+    echo "Запуск трея пропущен: нет активного сеанса пользователя $TRAY_USER (запустится при следующем входе)" >&2
+    return 0
+  fi
+
+  if pgrep -u "$TRAY_UID" -f 'anet-tray\.py' >/dev/null 2>&1; then
+    echo "Трей уже запущен"
+    return 0
+  fi
+
+  TRAY_ENV=()
+  TRAY_PLASMA_PID=$(pgrep -u "$TRAY_UID" -x plasmashell 2>/dev/null | head -n 1 || true)
+  if [ -n "$TRAY_PLASMA_PID" ] && [ -r "/proc/$TRAY_PLASMA_PID/environ" ]; then
+    while IFS= read -r -d '' ENTRY; do
+      case "$ENTRY" in
+        DISPLAY=*|WAYLAND_DISPLAY=*|XDG_RUNTIME_DIR=*|DBUS_SESSION_BUS_ADDRESS=*)
+          TRAY_ENV+=("$ENTRY")
+          ;;
+      esac
+    done < "/proc/$TRAY_PLASMA_PID/environ"
+  fi
+
+  if [ "${#TRAY_ENV[@]}" -eq 0 ]; then
+    echo "Запуск трея пропущен: не удалось получить окружение графической сессии (запустится при следующем входе)" >&2
+    return 0
+  fi
+
+  runuser -u "$TRAY_USER" -- env "${TRAY_ENV[@]}" setsid /usr/local/libexec/anet-tray.py >/tmp/anet-tray-install.log 2>&1 < /dev/null &
+  sleep 1
+  if pgrep -u "$TRAY_UID" -f 'anet-tray\.py' >/dev/null 2>&1; then
+    echo "Трей запущен"
+  else
+    echo "Трей не запустился; смотрите /tmp/anet-tray-install.log" >&2
+  fi
+}
+
+if [ "$TRAY_ONLY" -eq 1 ]; then
+  if [ "$EUID" -ne 0 ]; then
+    echo "Запустите скрипт от имени root: sudo ./install.sh --tray-only"
+    exit 1
+  fi
+  install_tray_deps
+  install_tray
+  exit 0
+fi
 
 if [ -n "$DESKTOP_OVERRIDE" ]; then
   case "$DESKTOP_OVERRIDE" in
@@ -242,10 +355,14 @@ if command -v apt-get >/dev/null 2>&1; then
   apt-get update -qq
   apt-get install -y python3-dbus python3-gi unzip
 elif command -v pacman >/dev/null 2>&1; then
-  pacman -Sy --noconfirm python-dbus python-gobject unzip
+  pacman -Sy --noconfirm --needed python-dbus python-gobject unzip
 else
   echo "Менеджер пакетов не распознан"
   echo "Установите зависимости вручную: python3-dbus, python3-gi, unzip"
+fi
+
+if [ "$INSTALL_TRAY" -eq 1 ]; then
+  install_tray_deps
 fi
 
 echo "Поиск архива Anet client"
@@ -354,6 +471,10 @@ fi
 if [ "$UI_MODE" = "qt6" ]; then
   echo "Установка KDE Qt6 UI библиотеки"
   install -m 755 "$UI_FILE" "$UI_DIR/"
+fi
+
+if [ "$INSTALL_TRAY" -eq 1 ]; then
+  install_tray
 fi
 
 if [ "$DE_NAME" = "xfce" ]; then
