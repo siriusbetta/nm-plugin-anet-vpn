@@ -16,6 +16,7 @@ AnetVpnWidget::AnetVpnWidget(const NetworkManager::VpnSetting::Ptr &setting, QWi
     m_lineEditPath = new QLineEdit(this);
     m_lineEditPath->setReadOnly(true);
     m_lineEditPath->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_lineEditPath->setMinimumWidth(360);
 
     m_buttonBrowse = new QPushButton("Browse...", this);
     m_buttonEdit = new QPushButton("Edit...", this);
@@ -61,6 +62,7 @@ void AnetVpnWidget::loadConfig(const NetworkManager::Setting::Ptr &setting)
     QString savedPath = data.value(QStringLiteral("config"));
     m_lineEditPath->setText(savedPath);
     refreshConnectedNode();
+    m_lineEditPath->setToolTip(savedPath);
 }
 
 void AnetVpnWidget::loadSecrets(const NetworkManager::Setting::Ptr &setting)
@@ -86,6 +88,7 @@ void AnetVpnWidget::onBrowseClicked() {
 	if (!filePath.isEmpty()) {
 	    m_lineEditPath->setText(filePath);
 	    refreshConnectedNode();
+	    m_lineEditPath->setToolTip(filePath);
 	    settingChanged();
 	}
 }
