@@ -175,6 +175,7 @@ class AnetVpnPlugin(dbus.service.Object):
         self.vpn_gw = None
         self.ifname = "anet-client"
         self.mtu = None
+        self.active_node = None
 
         log("anet vpn dbus service started")
 
@@ -232,6 +233,7 @@ class AnetVpnPlugin(dbus.service.Object):
         log("Connect() called")
         log(f"Connect connection: {repr(connection)}")
 
+        self.active_node = None
         self.StateChanged(dbus.UInt32(NM_VPN_SERVICE_STATE_STARTING))
 
         data = safe_get_vpn_data(connection)
@@ -362,6 +364,10 @@ class AnetVpnPlugin(dbus.service.Object):
             GLib.idle_add(self.fail_connect)
 
     def parse_anet_line(self, line):
+        if is_tunnel_up_line(line):
+            self.active_node = line.partition("Active node:")[2].strip() or None
+            log(f"parsed active_node={self.active_node}")
+
         # Пример:
         # [Core] Authenticated. VPN IP: 10.0.0.204
         vpn_ip = extract_ipv4_after_marker(line, "VPN IP:")
@@ -499,7 +505,10 @@ class AnetVpnPlugin(dbus.service.Object):
             log(f"emit Ip4Config: {repr(ip4_config)}")
             self.Ip4Config(ip4_config)
 
-            self.LoginBanner(dbus.String("anet VPN connected"))
+            banner = "anet VPN connected"
+            if self.active_node:
+                banner = f"{banner} — {self.active_node}"
+            self.LoginBanner(dbus.String(banner))
 
             self.started = True
             self.StateChanged(dbus.UInt32(NM_VPN_SERVICE_STATE_STARTED))
