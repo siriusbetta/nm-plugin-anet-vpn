@@ -29,6 +29,19 @@ rm -f /usr/local/bin/anet-client
 rm -f /usr/local/etc/client.toml
 rm -f /usr/local/etc/client.toml.bak
 
+echo "Удаление трея ANet VPN"
+pkill -f anet-tray.py 2>/dev/null || true
+rm -f /usr/local/libexec/anet-tray.py
+rm -f /usr/share/applications/anet-tray.desktop
+
+TRAY_USER="${SUDO_USER:-}"
+if [ -n "$TRAY_USER" ] && [ "$TRAY_USER" != "root" ]; then
+  TRAY_HOME=$(getent passwd "$TRAY_USER" | cut -d: -f6)
+  if [ -n "$TRAY_HOME" ]; then
+    rm -f "$TRAY_HOME/.config/autostart/anet-tray.desktop"
+  fi
+fi
+
 if [ -f /etc/os-release ]; then
 	source /etc/os-release
 	echo "Дистрибутив: $NAME"
